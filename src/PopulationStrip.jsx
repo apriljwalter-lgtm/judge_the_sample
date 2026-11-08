@@ -58,7 +58,7 @@ function PointTip({ active, payload, groupColumn }) {
   return (
     <div className="tip">
       <div>
-        <strong>Row {p.row.row_id}</strong> {p.sampled ? "· in temporary sample" : "· not sampled"}
+        <strong>Row {p.row.row_id}</strong> {p.sampled ? "· in this sample" : "· not sampled"}
       </div>
       <div>Charges: {dollars(p.row.charges)}</div>
       <div>
@@ -68,7 +68,9 @@ function PointTip({ active, payload, groupColumn }) {
   );
 }
 
-export default function PopulationStrip({ population, target, sampledIds, groupColumn, truth, estimate }) {
+export default function PopulationStrip({
+  population, target, sampledIds, groupColumn, truth, estimate, estimateLabel = "Sample mean", height = 360,
+}) {
   const jitter = useMemo(() => {
     const rng = makeRng(LAYOUT_SEED);
     return new Map(population.map((r) => [r.row_id, rng()]));
@@ -94,7 +96,7 @@ export default function PopulationStrip({ population, target, sampledIds, groupC
   const ticks = Array.from({ length: maxX / 10000 + 1 }, (_, i) => i * 10000);
 
   return (
-    <ResponsiveContainer width="100%" height={360}>
+    <ResponsiveContainer width="100%" height={height}>
       <ScatterChart margin={{ top: 28, right: 24, bottom: 36, left: 24 }}>
         <XAxis
           type="number"
@@ -139,7 +141,7 @@ export default function PopulationStrip({ population, target, sampledIds, groupC
           strokeWidth={2}
           strokeDasharray="6 4"
           ifOverflow="extendDomain"
-          label={<MeanLabel text="Sample mean" side={truth <= estimate ? "right" : "left"} colour={INK_2} />}
+          label={<MeanLabel text={estimateLabel} side={truth <= estimate ? "right" : "left"} colour={INK_2} />}
         />
       </ScatterChart>
     </ResponsiveContainer>

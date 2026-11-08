@@ -1,10 +1,13 @@
 import { colourFor } from "./groups.js";
 import { count, percent } from "./format.js";
 
-export default function SharesTable({ shares, column, N, n }) {
+// One table: each group's count and share in the whole population and in each method's sample.
+// `samples` is a list of { name, shares } where shares is null when that method drew no sample.
+export default function SharesTable({ column, population, samples, N }) {
   return (
-    <section>
-      <h2>Share of each {column} group in the whole population and in the temporary sample</h2>
+    <section className="card">
+      <h2 className="card-title">Share of each {column} group in the whole population and in each sample</h2>
+      <div className="card-body">
       <div className="table-wrap">
         <table className="shares">
           <thead>
@@ -15,32 +18,47 @@ export default function SharesTable({ shares, column, N, n }) {
               <th scope="colgroup" colSpan={2} className="group-head">
                 Whole population ({count(N)} people)
               </th>
-              <th scope="colgroup" colSpan={2} className="group-head">
-                Temporary sample ({n} people)
-              </th>
+              {samples.map((s) => (
+                <th key={s.name} scope="colgroup" colSpan={2} className="group-head">
+                  {s.name}
+                </th>
+              ))}
             </tr>
             <tr>
               <th scope="col">Count</th>
               <th scope="col">Share</th>
-              <th scope="col">Count</th>
-              <th scope="col">Share</th>
+              {samples.map((s) => [
+                <th key={`${s.name}-c`} scope="col">Count</th>,
+                <th key={`${s.name}-s`} scope="col">Share</th>,
+              ])}
             </tr>
           </thead>
           <tbody>
-            {shares.map((s) => (
-              <tr key={s.group}>
+            {population.map((p, i) => (
+              <tr key={p.group}>
                 <th scope="row">
-                  <span className="swatch" style={{ background: colourFor(column, s.group) }} aria-hidden="true" />
-                  {s.group}
+                  <span className="swatch" style={{ background: colourFor(column, p.group) }} aria-hidden="true" />
+                  {p.group}
                 </th>
-                <td>{count(s.popCount)}</td>
-                <td>{percent(s.popShare)}</td>
-                <td>{s.sampleCount}</td>
-                <td>{percent(s.sampleShare)}</td>
+                <td>{count(p.popCount)}</td>
+                <td>{percent(p.popShare)}</td>
+                {samples.map((s) =>
+                  s.shares
+                    ? [
+                        <td key={`${s.name}-c`}>{s.shares[i].sampleCount}</td>,
+                        <td key={`${s.name}-s`}>{percent(s.shares[i].sampleShare)}</td>,
+                      ]
+                    : [
+                        <td key={`${s.name}-c`}>–</td>,
+                        <td key={`${s.name}-s`}>–</td>,
+                      ]
+                )}
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+      <p className="note">Each sample has n people; "–" means that method drew no sample at this n.</p>
       </div>
     </section>
   );
