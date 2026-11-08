@@ -193,7 +193,7 @@ export default function App() {
             <strong>whole-number interval</strong> design applies. A random start r = {sysResult.start}{" "}
             was chosen from 1 to {count(sysResult.k)}, then every {count(sysResult.k)}th row in file
             order was taken: rows {sysResult.positions.slice(0, 8).join(", ")}
-            {n > 8 ? ", …" : ""}.
+            {n > 8 ? ", …" : "."}
           </p>
         ) : (
           <p>
@@ -201,7 +201,7 @@ export default function App() {
             <strong>fractional interval</strong> design applies. Interval k = {fixed(sysResult.k, 4)};
             random start u = {fixed(sysResult.start, 4)} (between 0 and k); row j is the next whole
             number at or above u + j × k: rows {sysResult.positions.slice(0, 8).join(", ")}
-            {n > 8 ? ", …" : ""}.
+            {n > 8 ? ", …" : "."}
           </p>
         )}
         <p>

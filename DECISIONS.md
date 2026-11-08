@@ -26,7 +26,7 @@ my agent about it, and do not edit it afterwards; add a dated revision below ins
 For each stage: the option I chose, why, and what it is meant to help a user learn.
 
 - Stage 2, visualization (include one visual feature meant to reveal a sampling problem): I chose a dot strip on a dollar line so every person can be visualized, they are colored by group which changes when switched between radio buttons, and I chose the shares table to compare the sample with the whole population.  I think this will be a pretty simplified view to show the changes in the sample for another healthcare worker. These working together will reveal if there is a problem with the sample such as being imbalanced. 
-- Stage 3, sampling interactions and stratification column: I selected to display all three sampling menthos side by side for easy comparison.  They will each display its own mean. 
+- Stage 3, sampling interactions and stratification column: I selected to display all three sampling methods together for easy comparison.  They will each display its own mean. I chose to stratify by age_band. This should help the learner to easily compare the sampling differences and make a judgement about how the methods compare to each other. 
 - Stage 4, presentation of the method comparison and sample-size experiments: 
 - Stage 5, challenge controls and my alternative method or correction: 
 
@@ -82,6 +82,9 @@ After I test it:
 - Tools used:
 - What I asked my agent to do, and what I checked myself:
 Section 1- I asked for the code to check the true mean, but ran it myself in the terminal. 
+Section 2- 
+Stage 2- AI checked, all rows load and charges are read as numbers, the true mean matches the original, the sample is n=100, its the same seed
+Stage 3- AI checked these all add up to n=100, its the same seed as previously, the systematic gives different rows and each  has an equal chance, the stratified grabs from each group
 
 
 - Automated checks my agent reported (I did not let it interpret my results):

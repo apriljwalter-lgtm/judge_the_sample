@@ -14,3 +14,8 @@ starts. One labelled file per comparison is enough:
 
 A challenge file may show baseline and modified results together, as long as each result is
 labelled separately; never pool their estimates. Your app does not need to keep a history of runs.
+
+
+Stage 2- baseline population, temporary simple random sample, seed 12345, n=100, color by group
+
+Stage 3- all three methods, n=100, seed 12345, color by age band
