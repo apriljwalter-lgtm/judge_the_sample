@@ -9,6 +9,7 @@ import { parseCsv } from "../src/parse.js";
 import {
   makeRng, trueMean, sampleMean, srs, groupShares,
   systematic, stratifiedAllocation, stratifiedEstimate, stratified,
+  repeatedSampling, systematicExact, repeatedResult, summarizeEstimates, histogramBins,
 } from "../src/sampling.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -287,6 +288,132 @@ check("all three methods: same seed and n reproduce identical samples for 50 see
       stratified(pop, "age_band", 100, r(seed), "charges", AGE).rows)) return `str ${seed}`;
   }
   return true;
+});
+
+// --- Stage 4: repeated sampling ----------------------------------------------
+// These check the machinery only; no experiment result is printed.
+const T = "charges";
+const sameArr = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+const close = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
+
+check("repeatedSampling: the number of estimates equals the repetition count (100 and 1,000)", () => {
+  for (const reps of [100, 1000]) {
+    const e = repeatedSampling((rng) => sampleMean(srs(pop, 10, rng), T), reps, makeRng(7));
+    if (e.length !== reps) return `reps ${reps}: got ${e.length}`;
+  }
+  return true;
+});
+check("repeatedSampling: every repetition draws exactly n distinct rows (n = 1, 10, 100; all three methods)", () => {
+  const rng = makeRng(99);
+  const distinct = (rows, n) => rows.length === n && new Set(rows.map((r) => r.row_id)).size === n;
+  for (const n of [1, 10, 100]) {
+    let bad = false;
+    repeatedSampling((g) => {
+      if (!distinct(srs(pop, n, g), n)) bad = true;
+      if (!distinct(systematic(pop, n, g).rows, n)) bad = true;
+      return 0;
+    }, 100, rng);
+    if (bad) return `n = ${n}`;
+  }
+  let bad = false;
+  repeatedSampling((g) => {
+    if (!distinct(stratified(pop, "age_band", 100, g, T, AGE).rows, 100)) bad = true;
+    return 0;
+  }, 100, rng);
+  return !bad || "stratified";
+});
+check("repeatedSampling: repetitions are separate samples (they are not all identical)", () => {
+  const e = repeatedSampling((rng) => sampleMean(srs(pop, 10, rng), T), 100, makeRng(5));
+  return new Set(e).size > 1;
+});
+check("repeatedResult: same seed and settings give identical estimate arrays (each method, 100 and 1,000 reps)", () => {
+  for (const method of ["srs", "systematic", "stratified"]) {
+    for (const reps of [100, 1000]) {
+      const args = { method, population: pop, target: T, n: 100, reps, seed: 12345, column: "age_band", levels: AGE };
+      if (!sameArr(repeatedResult(args).estimates, repeatedResult(args).estimates)) return `${method} ${reps}`;
+    }
+  }
+  return true;
+});
+check("repeatedResult: labels Monte Carlo results with their seed and repetition count", () => {
+  const r = repeatedResult({ method: "srs", population: pop, target: T, n: 10, reps: 1000, seed: 3 });
+  return (r.type === "Monte Carlo" && r.seed === 3 && r.count === 1000 && r.estimates.length === 1000) || r.type;
+});
+check("repeatedResult: systematic with a fractional interval (N = 1,338, n = 100) uses Monte Carlo", () => {
+  const r = repeatedResult({ method: "systematic", population: pop, target: T, n: 100, reps: 100, seed: 1 });
+  return (r.type === "Monte Carlo" && r.design === "fractional interval" && r.count === 100) || r.type;
+});
+check("repeatedResult: systematic with a whole-number interval uses exact enumeration (no seed, k results)", () => {
+  // N / 6 = 223, a whole number.
+  const r = repeatedResult({ method: "systematic", population: pop, target: T, n: 6, reps: 100, seed: 1 });
+  return (r.type === "exact" && r.seed === null && r.count === 223 && r.estimates.length === 223) || `${r.type} ${r.count}`;
+});
+check("repeatedResult: stratified repetitions use the population-weighted estimator", () => {
+  const r = repeatedResult({ method: "stratified", population: pop, target: T, n: 100, reps: 20, seed: 8, column: "age_band", levels: AGE });
+  const rng = makeRng(8);
+  const expected = Array.from({ length: 20 }, () => stratifiedEstimate(stratified(pop, "age_band", 100, rng, T, AGE).strata));
+  return sameArr(r.estimates, expected);
+});
+check("systematicExact: lists every start 1..k exactly once and each sample follows the interval", () => {
+  for (const n of [1, 2, 6, 223, 1338]) {
+    const ex = systematicExact(pop, n, T);
+    const k = N / n;
+    if (!ex || ex.k !== k || ex.starts.length !== k || new Set(ex.starts).size !== k) return `n = ${n}`;
+    if (!ex.starts.every((s, i) => s === i + 1)) return `starts n = ${n}`;
+    for (const r of [1, k]) {
+      const rows = Array.from({ length: n }, (_, j) => pop[r - 1 + j * k]);
+      if (ex.estimates[r - 1] !== sampleMean(rows, T)) return `estimate n = ${n}, r = ${r}`;
+    }
+  }
+  return true;
+});
+check("systematicExact: returns null when N / n is not a whole number (n = 10, 100)", () =>
+  systematicExact(pop, 10, T) === null && systematicExact(pop, 100, T) === null
+);
+check("systematicExact known answer: values 1..6, n = 2 gives starts {1,4},{2,5},{3,6}; bias exactly 0", () => {
+  const t = [1, 2, 3, 4, 5, 6].map((y, i) => ({ row_id: i + 1, y }));
+  const ex = systematicExact(t, 2, "y");
+  const s = summarizeEstimates(ex.estimates, trueMean(t, "y"));
+  return (sameArr(ex.estimates, [2.5, 3.5, 4.5]) && s.bias === 0 && close(s.sd, Math.sqrt(2 / 3))) || "mismatch";
+});
+check("summarizeEstimates known answer: estimates 1, 2, 3 with true mean 1 give bias 1, SD sqrt(2/3), RMSE sqrt(5/3)", () => {
+  const s = summarizeEstimates([1, 2, 3], 1);
+  return (s.meanEstimate === 2 && s.bias === 1 && close(s.sd, Math.sqrt(2 / 3)) && close(s.rmse, Math.sqrt(5 / 3)) && s.count === 3) || "mismatch";
+});
+check("summarizeEstimates: RMSE^2 = bias^2 + SD^2 for every method at n = 100 (100 and 1,000 reps)", () => {
+  const truth = trueMean(pop, T);
+  for (const method of ["srs", "systematic", "stratified"]) {
+    for (const reps of [100, 1000]) {
+      const r = repeatedResult({ method, population: pop, target: T, n: 100, reps, seed: 12345, column: "age_band", levels: AGE });
+      const s = summarizeEstimates(r.estimates, truth);
+      if (!close(s.rmse ** 2, s.bias ** 2 + s.sd ** 2, 1e-9)) return `${method} ${reps}`;
+    }
+  }
+  return true;
+});
+check("summarizeEstimates: same estimates give the same summary", () => {
+  const e = repeatedResult({ method: "srs", population: pop, target: T, n: 10, reps: 100, seed: 4 }).estimates;
+  const a = summarizeEstimates(e, 13270), b = summarizeEstimates([...e], 13270);
+  return a.bias === b.bias && a.sd === b.sd && a.rmse === b.rmse;
+});
+check("histogramBins: shared bins count every estimate once and cover the true mean", () => {
+  const truth = trueMean(pop, T);
+  const sets = [1, 10, 100].map((n) => repeatedResult({ method: "srs", population: pop, target: T, n, reps: 1000, seed: 2 }).estimates);
+  const h = histogramBins(sets, 30, [truth]);
+  const lo = h.edges[0], hi = h.edges[h.edges.length - 1];
+  if (h.counts.length !== 3) return "sets";
+  for (let i = 0; i < 3; i++) {
+    if (h.counts[i].length !== h.edges.length - 1) return "bin count";
+    if (h.counts[i].reduce((a, b) => a + b, 0) !== sets[i].length) return `total ${i}`;
+    if (!sets[i].every((e) => e >= lo && e < hi)) return `range ${i}`;
+  }
+  return (truth >= lo && truth < hi) || "truth outside";
+});
+check("histogramBins: equal-width bins, values placed correctly on a small hand-made example", () => {
+  const h = histogramBins([[0, 0.5, 1, 9.99], [10]], 10);
+  const widths = h.edges.slice(1).map((e, i) => e - h.edges[i]);
+  if (!widths.every((w) => close(w, h.width))) return "widths";
+  return (h.width === 1 && h.edges[0] === 0 && h.counts[0][0] === 2 && h.counts[0][1] === 1 && h.counts[0][9] === 1 && h.counts[1][10] === 1) || "mismatch";
 });
 
 console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) FAILED.`);

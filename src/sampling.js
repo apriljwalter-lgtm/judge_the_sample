@@ -3,7 +3,7 @@
 //
 // Contents: seedable random numbers, true mean, sample mean, the three samplers
 // (simple random, systematic, stratified) with their estimators, and group shares.
-// Stage 4 adds repeated-sampling summaries.
+// Stage 4 adds repeated sampling (Monte Carlo and exact enumeration) and its summaries.
 
 /** Seedable pseudo-random number generator (mulberry32). Returns a function giving numbers in [0, 1). */
 export function makeRng(seed) {
@@ -171,4 +171,119 @@ export function groupShares(population, sampleRows, column, levels) {
       sampleShare: sampleRows.length ? sampleCount / sampleRows.length : 0,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Stage 4: repeated sampling
+// ---------------------------------------------------------------------------
+
+/**
+ * Monte Carlo repeated sampling: draws `reps` SEPARATE samples, one after another, all from one
+ * seeded generator, and returns one estimate per sample. `drawEstimate(rng)` draws one sample
+ * (without replacement) and returns its estimate. A row may appear again in a later repetition.
+ */
+export function repeatedSampling(drawEstimate, reps, rng) {
+  if (!Number.isInteger(reps) || reps < 1) throw new Error("Repetitions must be a whole number of at least 1");
+  const estimates = new Array(reps);
+  for (let i = 0; i < reps; i++) estimates[i] = drawEstimate(rng);
+  return estimates;
+}
+
+/**
+ * Exact enumeration for systematic sampling with a WHOLE-NUMBER interval k = N/n:
+ * lists every start r = 1..k exactly once (each equally likely) and returns
+ * { starts, estimates, k }. Uses no random draws and no seed.
+ * Returns null when N/n is not a whole number (then Monte Carlo is used instead).
+ */
+export function systematicExact(population, n, target) {
+  const N = population.length;
+  checkN(n, N);
+  if (N % n !== 0) return null;
+  const k = N / n;
+  const starts = Array.from({ length: k }, (_, i) => i + 1);
+  const estimates = starts.map((r) => {
+    const rows = Array.from({ length: n }, (_, j) => population[r - 1 + j * k]);
+    return sampleMean(rows, target);
+  });
+  return { starts, estimates, k };
+}
+
+/**
+ * One repeated-sampling result for one method, population and n.
+ * method: "srs" | "systematic" | "stratified".
+ * Systematic with a whole-number interval uses exact enumeration (all k starts, no seed);
+ * everything else uses Monte Carlo with `reps` repetitions from `seed`.
+ * Returns { method, n, type ("exact" | "Monte Carlo"), seed (null if exact), count, design, estimates }.
+ */
+export function repeatedResult({ method, population, target, n, reps, seed, column, levels }) {
+  if (method === "systematic") {
+    const exact = systematicExact(population, n, target);
+    if (exact) {
+      return {
+        method, n, type: "exact", seed: null, count: exact.k,
+        design: "whole-number interval", estimates: exact.estimates,
+      };
+    }
+    const estimates = repeatedSampling(
+      (rng) => sampleMean(systematic(population, n, rng).rows, target), reps, makeRng(seed)
+    );
+    return { method, n, type: "Monte Carlo", seed, count: reps, design: "fractional interval", estimates };
+  }
+  if (method === "srs") {
+    const estimates = repeatedSampling((rng) => sampleMean(srs(population, n, rng), target), reps, makeRng(seed));
+    return { method, n, type: "Monte Carlo", seed, count: reps, design: null, estimates };
+  }
+  if (method === "stratified") {
+    const estimates = repeatedSampling(
+      (rng) => stratified(population, column, n, rng, target, levels).estimate, reps, makeRng(seed)
+    );
+    return { method, n, type: "Monte Carlo", seed, count: reps, design: "proportional allocation", estimates };
+  }
+  throw new Error(`Unknown method ${method}`);
+}
+
+/**
+ * Repeated-sampling summary, in the target's units, measured against `truth`
+ * (the true mean of the population the samples were drawn from):
+ *   bias = mean of estimates - true mean
+ *   SD   = spread of the estimates (divides by the number of estimates)
+ *   RMSE = sqrt(mean of (estimate - true mean)^2), so RMSE^2 = bias^2 + SD^2
+ */
+export function summarizeEstimates(estimates, truth) {
+  const m = estimates.length;
+  if (m === 0) throw new Error("No estimates to summarise");
+  const meanEst = estimates.reduce((a, b) => a + b, 0) / m;
+  const sd = Math.sqrt(estimates.reduce((t, e) => t + (e - meanEst) ** 2, 0) / m);
+  const rmse = Math.sqrt(estimates.reduce((t, e) => t + (e - truth) ** 2, 0) / m);
+  return { count: m, meanEstimate: meanEst, bias: meanEst - truth, sd, rmse };
+}
+
+/** A "nice" width (1, 2, 2.5 or 5 times a power of ten) at least as big as `raw`. */
+function niceWidth(raw) {
+  const p = 10 ** Math.floor(Math.log10(raw));
+  for (const f of [1, 2, 2.5, 5, 10]) if (f * p >= raw) return f * p;
+  return 10 * p;
+}
+
+/**
+ * Shared histogram bins for several results shown together, so they use the same dollar axis
+ * and the same bins. `extra` values (for example the true mean) are kept inside the range.
+ * Bins are [edge_i, edge_i+1). Returns { edges, width, counts } with one counts array per set.
+ * (Display only: this does not change any estimate.)
+ */
+export function histogramBins(estimateSets, binCount = 30, extra = []) {
+  const all = [...estimateSets.flat(), ...extra];
+  let lo = Math.min(...all);
+  let hi = Math.max(...all);
+  if (hi === lo) { lo -= 1; hi += 1; }
+  const width = niceWidth((hi - lo) / binCount);
+  const start = Math.floor(lo / width) * width;
+  const bins = Math.floor((hi - start) / width) + 1;
+  const edges = Array.from({ length: bins + 1 }, (_, i) => start + i * width);
+  const counts = estimateSets.map((set) => {
+    const c = new Array(bins).fill(0);
+    for (const e of set) c[Math.min(bins - 1, Math.floor((e - start) / width))]++;
+    return c;
+  });
+  return { edges, width, counts };
 }

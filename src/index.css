@@ -350,3 +350,71 @@ figcaption {
 .row-order-key .key-rowmark {
   vertical-align: -2px;
 }
+
+/* Stage 4: repeated-sampling experiments */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 2px solid #c3c2b7;
+  margin: 16px 0 8px;
+}
+.tab {
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: 1px solid #c3c2b7;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #f0efec;
+  color: var(--ink-2);
+  cursor: pointer;
+  margin-bottom: -2px;
+}
+.tab.active {
+  background: #ffffff;
+  color: var(--ink);
+  border-color: var(--ink-2);
+  border-bottom: 2px solid #ffffff;
+}
+.histogram-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .histogram-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.histogram {
+  margin: 8px 0;
+}
+.histogram figcaption {
+  color: var(--ink);
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+.shares th[scope="row"] .note {
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+.glossary {
+  margin: 4px 0 8px;
+  font-size: 0.9rem;
+}
+.glossary > div {
+  margin: 0 0 6px;
+}
+.glossary dt {
+  font-weight: 600;
+  display: inline;
+}
+.glossary dt::after {
+  content: ": ";
+}
+.glossary dd {
+  display: inline;
+  margin: 0;
+  color: var(--ink-2);
+}

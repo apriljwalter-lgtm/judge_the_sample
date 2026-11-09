@@ -27,7 +27,7 @@ For each stage: the option I chose, why, and what it is meant to help a user lea
 
 - Stage 2, visualization (include one visual feature meant to reveal a sampling problem): I chose a dot strip on a dollar line so every person can be visualized, they are colored by group which changes when switched between radio buttons, and I chose the shares table to compare the sample with the whole population.  I think this will be a pretty simplified view to show the changes in the sample for another healthcare worker. These working together will reveal if there is a problem with the sample such as being imbalanced. 
 - Stage 3, sampling interactions and stratification column: I selected to display all three sampling methods together for easy comparison.  They will each display its own mean. I chose to stratify by age_band. This should help the learner to easily compare the sampling differences and make a judgement about how the methods compare to each other. 
-- Stage 4, presentation of the method comparison and sample-size experiments: 
+- Stage 4, presentation of the method comparison and sample-size experiments: I selected to display the information as histograms and to update automatically when the settings are changed. I am hoping this will show the spread of the comparison numbers better than tables that I already have selected. This should make the spread more visible to the learner so they can see the range of information. 
 - Stage 5, challenge controls and my alternative method or correction: 
 
 ## 3. Results table
