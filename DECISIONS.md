@@ -42,11 +42,11 @@ value for modified rows). Keep each result in its own row: never pool estimates.
 
 | Experiment | Population or condition | Method | Settings | Seed (or exact) | n | Repetitions or starts | Type | True mean | Bias | SD | RMSE |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Methods at n = 100 | baseline | Simple random | | | 100 | | | | | | |
-| Methods at n = 100 | baseline | Systematic | | | 100 | | | | | | |
-| Methods at n = 100 | baseline | Stratified | | | 100 | | | | | | |
-| Sample size | baseline | Simple random | | | 1 | | | | | | |
-| Sample size | baseline | Simple random | | | 10 | | | | | | |
+| Methods at n = 100 | baseline | Simple random |no replacement| 12345 | 100 | 100 | Monte Carlo | $13,270.42 | -$230.53 | $1,210.42| $1,232.18|
+| Methods at n = 100 | baseline | Systematic | Fractional interval design | 12345| 100 |100| Monte Carlo | $13,270.42 | $76.92| $1,025.44| $1,028.32|
+| Methods at n = 100 | baseline | Stratified |age_band, Proportional allocation| 12345|100 | 100 | Monte Carlo | $13,270.42| $66.08 | $1,269.04 | $1,270.76|
+| Sample size | baseline | Simple random | no replacement | 12345| 1 |100|Monte Carlo |$13,270.42 |-$977.73 | $10,662.16 | $10,706.90|
+| Sample size | baseline | Simple random | no replacement| 12345| 10 | 100|Monte Carlo|$13,270.42 | -$412.19|$3,587.07 | $3,610.68| 
 | Challenge | baseline | (method I challenged) | | | | | | | | | |
 | Challenge | modified | (method I challenged) | | | | | | | | | |
 | Challenge | baseline | (alternative or correction) | | | | | | | | | |
