@@ -73,10 +73,25 @@ Hypothesis, written before I consult my agent:
 - Alternative method or correction I will compare, and why: I will compare against the existing breakdown with 4 age groups. 
 - Evidence that would contradict my hypothesis: If the group weights are equal. 
 
+
+Revision 11/14/26: I misunderstood what the population change was asking and would like add a new age group to the existing population 0-17, the mean would recalculate based on the new rows that get added. I would like to add a group of 374 (randomly selected number by me) children with generated AI charges that can be equal to or between the existing high and low numbers they are not real patients or real charges. For each other row sex will still be completed male or female randomly, bmi can be AI generated based on normal bmi for the age range, children will always be no or 0 depending on the data inputs, if the child is greater than 13 randomly add a smoker into the population, and randomize the regions. Add a new age band 0-17 and they should get mixed into the existing data set.
+New hypothesis:
+- Date written: 11/14
+- Method I chose to challenge: Stratefied by age group.
+- The change to the population or its ordering I will be adding 374 of children age group 0-17 into the existing data with generated charges equal chance for any number between or equal to the existing high and low values, sex, bmi, children should be no or 0, if the child is greater than 13 AI will randomly add smokers into the population but the share of them should be 2%. The added children should have randomized ages equal chance for any age in the group, but following the other columns rules once age is selected. The new data should be placed at random positions in the row order. The chance for each sex should be 50/50 and 25% for each region. 
+- Why the selection rule would interact with that change: The group weights will change based on the new data. 
+- Evidence I expect across repeated samples: The mean will shift based on how the group is sized and weighted, I expect that the sample mean should shift closer to the true mean with a smaller bias than simplified random. 
+- Alternative method or correction I will compare, and why: We could challenge it against the simplified random sampling to make a comparision with the new data and see how much variation there is. 
+- Evidence that would contradict my hypothesis:
+That the simplied random sampling mean actually has a smaller bias. 
+
 After I test it:
 
 - Test settings (conditions, methods, alternative method or correction, n, seeds); results are in the table above:
 - (c) Challenge interpretation: did the evidence support my hypothesis? Bias versus variability, other explanations, what the alternative or correction showed, and any dated revision (keep the original above):
+
+
+
 
 ## 6. AI use
 
