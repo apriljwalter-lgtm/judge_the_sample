@@ -63,15 +63,15 @@ rows use the same n; a challenge baseline row may repeat a matching stage 4 resu
 
 ## 5. Challenge (hypothesis written independently, before consulting my agent)
 
-Hypothesis, written before I consult my agent: Challen
+Hypothesis, written before I consult my agent:  
 
-- Date written:
-- Method I chose to challenge:
-- The change to the population or its ordering:
-- Why the selection rule would interact with that change:
-- Evidence I expect across repeated samples:
-- Alternative method or correction I will compare, and why:
-- Evidence that would contradict my hypothesis:
+- Date written: 11/14
+- Method I chose to challenge: Stratefied by age group.
+- The change to the population or its ordering: I want to only have 2 age groups with 18-40 being one and 40-64 being the other. 
+- Why the selection rule would interact with that change: The group sizes and weights will most likely cange. 
+- Evidence I expect across repeated samples: The mean will shift based on how the group is sized and weighted, I expect that the sample mean should shift closer to the true mean with a smaller bias. 
+- Alternative method or correction I will compare, and why: I will compare against the existing breakdown with 4 age groups. 
+- Evidence that would contradict my hypothesis: If the group weights are equal. 
 
 After I test it:
 
