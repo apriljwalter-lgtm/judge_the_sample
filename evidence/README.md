@@ -21,6 +21,6 @@ Stage 2- baseline population, temporary simple random sample, seed 12345, n=100,
 Stage 3- all three methods, n=100, seed 12345, color by age band
 
 Stage 4- 
-Experiment A: method comparison, baseline population, all 3 methods, n=100, seed 12345, 100 repetitions, all use Monte Carlo, 100 reps.png and table.png
+Experiment A: method comparison, baseline population, all 3 methods, n=100, seed 12345, 100 repetitions, all use Monte Carlo, method-comparison-n100-seed12345-100reps.png, method-comparison-n100-seed12345-100reps-table.png
 
-Experiment B: sample size comparision, baseline population, simple random, n=1, 10, 100, seed 12345, 100 repetitions all use Monte Carlo, 100 reps.png
+Experiment B: sample size comparison, baseline population, simple random, n=1, 10, 100, seed 12345, 100 repetitions all use Monte Carlo,sample-size-comparison-srs-n1-10-100-seed12345-100reps.png.
