@@ -9,7 +9,7 @@ import {
   Tooltip,
 } from "recharts";
 import { makeRng } from "./sampling.js";
-import { GROUP_COLUMNS, colourFor } from "./groups.js";
+import { GROUP_COLUMNS, colourFor, groupLabel } from "./groups.js";
 import { dollars } from "./format.js"; // used in the hover tooltip
 
 const INK = "#0b0b0b";
@@ -58,11 +58,11 @@ function PointTip({ active, payload, groupColumn }) {
   return (
     <div className="tip">
       <div>
-        <strong>Row {p.row.row_id}</strong> {p.sampled ? "· in this sample" : "· not sampled"}
+        <strong>Row {p.row.row_id}</strong> {p.sampled ? "· picked" : "· not picked"}
       </div>
       <div>Charges: {dollars(p.row.charges)}</div>
       <div>
-        {groupColumn}: {p.row[groupColumn]}
+        {groupLabel(groupColumn)}: {p.row[groupColumn]}
       </div>
     </div>
   );

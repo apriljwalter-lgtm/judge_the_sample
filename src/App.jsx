@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { population, TARGET, DATA_FILE } from "./data.js";
 import {
   makeRng, trueMean, srs, systematic, stratified, sampleMean, groupShares,
-  repeatedResult, summarizeEstimates, histogramBins,
+  repeatedResult, summarizeEstimates, middleRange,
 } from "./sampling.js";
 import { GROUP_COLUMNS } from "./groups.js";
 import { dollars, count, fixed } from "./format.js";
@@ -25,6 +25,11 @@ const STRATA_LEVELS = GROUP_COLUMNS.find((c) => c.key === STRATA_COLUMN).levels;
 
 const levelsOf = (column) => GROUP_COLUMNS.find((c) => c.key === column).levels;
 
+// The file's row order has no meaning beyond the order of the source file (required note).
+const ROW_ORDER_NOTE = "The rows are in the order the file came in. That is not a time order.";
+
+const people = (x) => `${count(x)} ${x === 1 ? "person" : "people"}`;
+
 function useWholeNumberInput(initial, min, max) {
   const [value, setValue] = useState(initial);
   const [text, setText] = useState(String(initial));
@@ -43,7 +48,35 @@ export default function App() {
   const n = nInput.value;
   const seed = seedInput.value;
   const [groupColumn, setGroupColumn] = useState("smoker");
-  const [tab, setTab] = useState("single");
+  // The open tab is kept in the address (#single or #experiments), so a refresh reopens it.
+  const [tab, setTab] = useState(() => (window.location.hash === "#experiments" ? "experiments" : "single"));
+  useEffect(() => {
+    window.history.replaceState(null, "", `#${tab}`);
+  }, [tab]);
+
+  // Remember how far down the page was scrolled, and return there after a refresh.
+  // Per-viewer convenience only; if browser storage is unavailable the page still works.
+  useEffect(() => {
+    const KEY = "judge-the-sample-scroll";
+    try {
+      window.history.scrollRestoration = "manual";
+      const saved = JSON.parse(sessionStorage.getItem(KEY) || "null");
+      if (saved && saved.tab === window.location.hash) {
+        requestAnimationFrame(() => window.scrollTo(0, saved.y));
+      }
+    } catch {
+      /* ignore */
+    }
+    const save = () => {
+      try {
+        sessionStorage.setItem(KEY, JSON.stringify({ tab: window.location.hash, y: window.scrollY }));
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("beforeunload", save);
+    return () => window.removeEventListener("beforeunload", save);
+  }, []);
 
   // Each method uses its own generator started from the same displayed seed.
   const srsResult = useMemo(() => {
@@ -86,42 +119,41 @@ export default function App() {
     const base = { population, target: TARGET, reps, seed: expSeed };
     const run = (method, n) =>
       repeatedResult({ ...base, method, n, column: STRATA_COLUMN, levels: STRATA_LEVELS });
-    const withSummary = (r) => ({ result: r, summary: summarizeEstimates(r.estimates, truth) });
+    const withSummary = (r) => ({ result: r, summary: summarizeEstimates(r.estimates, truth), range: middleRange(r.estimates) });
 
     // Experiment A: three methods, same n = 100. Each method uses its own generator from the same seed.
     const srs100 = withSummary(run("srs", EXPERIMENT_N));
     const a = [
       { key: "srs", label: "Simple random", ...srs100 },
       { key: "sys", label: "Systematic", ...withSummary(run("systematic", EXPERIMENT_N)) },
-      { key: "str", label: `Stratified by age group (${STRATA_COLUMN})`, ...withSummary(run("stratified", EXPERIMENT_N)) },
+      { key: "str", label: "Stratified by age group", ...withSummary(run("stratified", EXPERIMENT_N)) },
     ];
-    a[0].note = "people picked completely at random";
+    a[0].note = "picked completely at random";
     a[1].note = "every so many rows down the file (" + a[1].result.design + ")";
-    a[2].note = "people picked at random within each age group; groups weighted by their size";
+    a[2].note = "picked at random inside each age group, weighted by group size";
 
     // Experiment B: simple random at n = 1, 10, 100. n = 100 reuses Experiment A's result
     // (same population, method, seed and repetitions).
     const b = SIZES_B.map((size) =>
       size === EXPERIMENT_N
-        ? { key: `srs-${size}`, label: `Simple random, ${size} ${size === 1 ? "person" : "people"}`, ...srs100, note: "same result as Experiment A" }
-        : { key: `srs-${size}`, label: `Simple random, ${size} ${size === 1 ? "person" : "people"}`, ...withSummary(run("srs", size)) }
+        ? { key: `srs-${size}`, label: `Simple random, ${people(size)}`, ...srs100, note: "same result as Experiment A" }
+        : { key: `srs-${size}`, label: `Simple random, ${people(size)}`, ...withSummary(run("srs", size)) }
     );
 
-    const binsFor = (list) => histogramBins(list.map((x) => x.result.estimates), 30, [truth]);
-    return { a, b, binsA: binsFor(a), binsB: binsFor(b) };
+    return { a, b };
   }, [reps, expSeed, truth]);
 
   const common = { population, target: TARGET, groupColumn, truth, n, seed };
+  const showRows = (positions) => positions.slice(0, 8).join(", ") + (positions.length > 8 ? ", …" : "");
 
   return (
     <main>
       <h1>Judge the Sample: healthcare costs</h1>
 
       <p>
-        <strong>Population:</strong> all {count(N)} people (one beneficiary record per row) in{" "}
-        <code>{DATA_FILE}</code>, a simulated teaching dataset. It is not all patients or all
-        insurance claims. <strong>Target:</strong> <code>{TARGET}</code>, individual medical costs
-        billed, in US dollars.
+        This app uses one file of {count(N)} people (<code>{DATA_FILE}</code>), one simulated
+        insurance record each. We want the mean of their medical charges (<code>{TARGET}</code>),
+        in US dollars. It is a teaching dataset, not all patients or all claims.
       </p>
 
       <div className="tabs" role="tablist" aria-label="Page sections">
@@ -150,7 +182,7 @@ export default function App() {
         <div className="controls">
           <div className="field">
             <label>
-              Sample size n{" "}
+              People per sample (n){" "}
               <input
                 type="text"
                 inputMode="numeric"
@@ -160,7 +192,7 @@ export default function App() {
               />
             </label>{" "}
             {nInput.isValid ? (
-              <span>The same n is used for all three methods.</span>
+              <span>Used for all three methods.</span>
             ) : (
               <span className="error">
                 Enter a whole number from 1 to {count(N)}. Still showing n = {count(n)}.
@@ -179,7 +211,7 @@ export default function App() {
               />
             </label>{" "}
             {seedInput.isValid ? (
-              <span>The same seed and n always give the same samples.</span>
+              <span>A starting number for the random picks. The same seed and n always pick the same people.</span>
             ) : (
               <span className="error">
                 Enter a whole number from 0 to {MAX_SEED}. Still showing seed {seed}.
@@ -199,7 +231,7 @@ export default function App() {
               <thead>
                 <tr>
                   <th scope="col">Method</th>
-                  <th scope="col">Estimate from one sample</th>
+                  <th scope="col">Sample mean from this one sample</th>
                   <th scope="col">Settings</th>
                 </tr>
               </thead>
@@ -222,7 +254,7 @@ export default function App() {
                   </td>
                 </tr>
                 <tr>
-                  <th scope="row">Stratified by {STRATA_COLUMN}</th>
+                  <th scope="row">Stratified by age group</th>
                   <td>{strResult ? dollars(strResult.estimate) : "–"}</td>
                   <td>
                     {strResult
@@ -234,8 +266,8 @@ export default function App() {
             </table>
           </div>
           <p className="note">
-            Each estimate comes from one sample, not repeated sampling. All three use the same n and
-            seed. In this file, row order is only the order of the source file; it is not a time order.
+            Each figure comes from one sample only, not repeated sampling. All three use the same n
+            and seed.
           </p>
         </div>
       </section>
@@ -243,88 +275,106 @@ export default function App() {
       <MethodPanel {...common} title="Simple random sampling" rows={srsResult.rows}
         estimate={srsResult.estimate} estimateName="Sample mean">
         <p>
-          {count(n)} different people are chosen at random, without replacement, from all {count(N)}.
-          Every possible set of {count(n)} people is equally likely. The estimate is the plain mean of
-          their charges.
+          We picked {people(n)} completely at random from all {count(N)}, with no one picked twice.
+          The figure is the plain mean of their charges.
         </p>
       </MethodPanel>
 
       <MethodPanel {...common} title="Systematic sampling with a random start" rows={sysResult.rows}
         estimate={sysResult.estimate} estimateName="Sample mean">
-        {sysResult.design === "whole-number interval" ? (
-          <p>
-            N ÷ n = {count(N)} ÷ {count(n)} = {count(sysResult.k)} is a whole number, so the{" "}
-            <strong>whole-number interval</strong> design applies. A random start r = {sysResult.start}{" "}
-            was chosen from 1 to {count(sysResult.k)}, then every {count(sysResult.k)}th row in file
-            order was taken: rows {sysResult.positions.slice(0, 8).join(", ")}
-            {n > 8 ? ", …" : "."}
-          </p>
-        ) : (
-          <p>
-            N ÷ n = {count(N)} ÷ {count(n)} = {fixed(sysResult.k, 4)} is not a whole number, so the{" "}
-            <strong>fractional interval</strong> design applies. Interval k = {fixed(sysResult.k, 4)};
-            random start u = {fixed(sysResult.start, 4)} (between 0 and k); row j is the next whole
-            number at or above u + j × k: rows {sysResult.positions.slice(0, 8).join(", ")}
-            {n > 8 ? ", …" : "."}
-          </p>
-        )}
         <p>
-          Either way, every row has the same chance, {count(n)}/{count(N)}, of being picked. The rows
-          are taken in the file's order, which here is only the order of the source file, not a time
-          order. The estimate is the plain mean of the sampled charges.
+          We went down the file from a random starting spot and took one person{" "}
+          {sysResult.design === "whole-number interval"
+            ? `every ${count(sysResult.k)} rows`
+            : `about every ${fixed(sysResult.k, 2)} rows`}{" "}
+          (<strong>{sysResult.design}</strong> design). The figure is the plain mean of their
+          charges. {ROW_ORDER_NOTE}
         </p>
+        <details className="details">
+          <summary>Show the details</summary>
+          {sysResult.design === "whole-number interval" ? (
+            <p>
+              {count(N)} ÷ {count(n)} = {count(sysResult.k)} is a whole number, so the whole-number
+              interval design applies. A random start r = {sysResult.start} was chosen from 1 to{" "}
+              {count(sysResult.k)}, then every {count(sysResult.k)}th row was taken: rows{" "}
+              {showRows(sysResult.positions)}
+            </p>
+          ) : (
+            <p>
+              {count(N)} ÷ {count(n)} = {fixed(sysResult.k, 4)} is not a whole number, so the
+              fractional interval design applies. Interval k = {fixed(sysResult.k, 4)}; random start
+              u = {fixed(sysResult.start, 4)} (between 0 and k); row j is the next whole number at or
+              above u + j × k: rows {showRows(sysResult.positions)}
+            </p>
+          )}
+          <p>
+            Either way, every person has the same chance, {count(n)}/{count(N)}, of being picked.
+          </p>
+        </details>
       </MethodPanel>
 
-      <MethodPanel {...common} title={`Stratified sampling by ${STRATA_COLUMN}`}
-        rows={strResult?.rows} estimate={strResult?.estimate} estimateName="Weighted estimate"
+      <MethodPanel {...common} title="Stratified sampling by age group" rows={strResult?.rows}
+        estimate={strResult?.estimate} estimateName="Weighted estimate"
         message={
           strResult
             ? null
-            : `Stratified sampling by ${STRATA_COLUMN} needs n of at least ${STRATA_LEVELS.length} (one person per group). No stratified sample is drawn at n = ${n}.`
+            : `Stratified sampling needs at least ${STRATA_LEVELS.length} people per sample (one from each age group), so no stratified sample is drawn at n = ${count(n)}.`
         }>
         {strResult && (
           <>
             <p>
-              The population is split into {STRATA_LEVELS.length} {STRATA_COLUMN} groups. Each group gets
-              a share of the {count(n)} people in proportion to its size (largest-remainder rounding, at
-              least 1 per group), and people are then picked at random without replacement inside each
-              group. The estimate is the <strong>population-weighted mean</strong>: each group's sample
-              mean × (group size ÷ {count(N)}), added up.
+              We split everyone into {STRATA_LEVELS.length} age groups ({STRATA_COLUMN}), gave each
+              group a share of the {count(n)} places in proportion to its size, and picked people at
+              random inside each group. Each group's mean then counts according to its share of
+              all {count(N)} people (a <strong>population-weighted mean</strong>).
             </p>
-            <div className="table-wrap">
-              <table className="shares">
-                <thead>
-                  <tr>
-                    <th scope="col">{STRATA_COLUMN}</th>
-                    <th scope="col">Group size N_h</th>
-                    <th scope="col">Weight N_h ÷ N</th>
-                    <th scope="col">People sampled n_h</th>
-                    <th scope="col">Sample mean in group</th>
-                    <th scope="col">Weight × group mean</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {strResult.strata.map((s) => (
-                    <tr key={s.group}>
-                      <th scope="row">{s.group}</th>
-                      <td>{count(s.Nh)}</td>
-                      <td>{fixed(s.weight, 4)}</td>
-                      <td>{count(s.nh)}</td>
-                      <td>{dollars(s.mean)}</td>
-                      <td>{dollars(s.weight * s.mean)}</td>
+            <p>
+              <strong>People picked per age group (proportional allocation):</strong>{" "}
+              {strResult.strata.map((s) => `${s.group}: ${count(s.nh)}`).join(" · ")} (total{" "}
+              {count(strResult.strata.reduce((t, s) => t + s.nh, 0))})
+            </p>
+            <details className="details">
+              <summary>Show the details</summary>
+              <p>
+                Places are shared out by largest-remainder rounding, at least 1 per group, never
+                more than the group size. People are picked without replacement inside each group.
+                Estimate = sum of (group size ÷ {count(N)}) × group's sample mean.
+              </p>
+              <div className="table-wrap">
+                <table className="shares">
+                  <thead>
+                    <tr>
+                      <th scope="col">Age group</th>
+                      <th scope="col">Group size N_h</th>
+                      <th scope="col">Weight N_h ÷ N</th>
+                      <th scope="col">People picked n_h</th>
+                      <th scope="col">Sample mean in group</th>
+                      <th scope="col">Weight × group mean</th>
                     </tr>
-                  ))}
-                  <tr className="total">
-                    <th scope="row">Total</th>
-                    <td>{count(N)}</td>
-                    <td>{fixed(strResult.strata.reduce((t, s) => t + s.weight, 0), 4)}</td>
-                    <td>{count(strResult.strata.reduce((t, s) => t + s.nh, 0))}</td>
-                    <td></td>
-                    <td>{dollars(strResult.estimate)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {strResult.strata.map((s) => (
+                      <tr key={s.group}>
+                        <th scope="row">{s.group}</th>
+                        <td>{count(s.Nh)}</td>
+                        <td>{fixed(s.weight, 4)}</td>
+                        <td>{count(s.nh)}</td>
+                        <td>{dollars(s.mean)}</td>
+                        <td>{dollars(s.weight * s.mean)}</td>
+                      </tr>
+                    ))}
+                    <tr className="total">
+                      <th scope="row">Total</th>
+                      <td>{count(N)}</td>
+                      <td>{fixed(strResult.strata.reduce((t, s) => t + s.weight, 0), 4)}</td>
+                      <td>{count(strResult.strata.reduce((t, s) => t + s.nh, 0))}</td>
+                      <td></td>
+                      <td>{dollars(strResult.estimate)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </>
         )}
       </MethodPanel>
@@ -336,10 +386,9 @@ export default function App() {
       {tab === "experiments" && (
       <>
       <p>
-        On this tab the computer takes many samples, one after another, and works out the
-        average cost from each one. The charts show how much those averages vary from one sample
-        to the next, and how close they land to the true average. Everything here uses the
-        original {count(N)} people, unchanged. (The other tab shows just one sample at a time.)
+        Here the computer takes many samples and works out the mean cost from each one. The
+        charts show how much those means vary, and how close they land to the true mean.
+        Everything uses the original {count(N)} people, unchanged.
       </p>
 
       <ExperimentSettings seedInput={expSeedInput} seed={expSeed} maxSeed={MAX_SEED} reps={reps} onRepsChange={setReps} />
@@ -347,20 +396,19 @@ export default function App() {
       <ExperimentPanel
         title={`Experiment A: three ways of picking ${EXPERIMENT_N} people`}
         results={experiments.a}
-        bins={experiments.binsA}
         truth={truth}
         N={N}
         intro={<>
           <p>
-            The same number of people ({EXPERIMENT_N}) in every sample, picked three different ways:
-            simple random, systematic, and stratified by age group ({STRATA_COLUMN}).
+            Every sample has {EXPERIMENT_N} people, picked three ways: simple random, systematic,
+            and stratified by age group.
           </p>
           <p className="note">
-            Systematic: {count(N)} people ÷ {EXPERIMENT_N}
+            Systematic: {count(N)} ÷ {EXPERIMENT_N}
             {N % EXPERIMENT_N === 0
-              ? ` = ${count(N / EXPERIMENT_N)}, a whole number, so every possible starting point is listed once (exact, no seed).`
-              : ` = ${fixed(N / EXPERIMENT_N, 2)}, not a whole number, so the fractional-interval design is used with random starting points (Monte Carlo).`}{" "}
-            The rows are in the order of the original file, which is not a time order.
+              ? ` = ${count(N / EXPERIMENT_N)} is a whole number, so every possible starting spot is listed once (exact, no seed).`
+              : ` = ${fixed(N / EXPERIMENT_N, 2)} is not a whole number, so the fractional-interval design is used with random starting spots (Monte Carlo).`}{" "}
+            {ROW_ORDER_NOTE}
           </p>
         </>}
       />
@@ -368,16 +416,13 @@ export default function App() {
       <ExperimentPanel
         title="Experiment B: does a bigger sample help? (simple random, 1, 10 or 100 people)"
         results={experiments.b}
-        bins={experiments.binsB}
         truth={truth}
         N={N}
         intro={
           <p>
-            Same people, same method (simple random). Only the number of people in each sample
-            changes: 1, 10 or 100. Don't mix up the two numbers: "people per sample" (n) is how
-            many people are in one sample; "samples taken" (repetitions) is how many separate
-            samples the computer draws for each chart. The 100-person chart is the same result
-            as in Experiment A.
+            Same people, same method. Only the number of people per sample (n) changes: 1, 10 or
+            100. This is separate from "samples taken", which is how many samples make each chart.
+            The 100-person chart is the same result as in Experiment A.
           </p>
         }
       />

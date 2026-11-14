@@ -1,41 +1,20 @@
-import Histogram from "./Histogram.jsx";
+import RangeChart, { typeText, samplesText } from "./RangeChart.jsx";
 import { dollars, count } from "./format.js";
 
-// One experiment: a row of histograms (same bins, same axes) and a summary table.
-// `results`: [{ key, label, result, summary, note }] where `result` comes from repeatedResult()
-// and `summary` from summarizeEstimates() in sampling.js.
-export const typeText = (r) => (r.type === "exact" ? "Exact (every start listed)" : "Monte Carlo (random samples)");
-export const samplesText = (r) =>
-  r.type === "exact" ? `all ${count(r.count)} possible starts` : `${count(r.count)} samples`;
-
-export default function ExperimentPanel({ title, intro, results, bins, truth, N }) {
-  const yMax = Math.max(...bins.counts.flat());
-
+// One experiment: a range-bar chart (one row per result, same dollar axis) and a summary table.
+// `results`: [{ key, label, result, summary, range, note }] where `result` comes from
+// repeatedResult(), `summary` from summarizeEstimates() and `range` from middleRange() in sampling.js.
+export default function ExperimentPanel({ title, intro, results, truth, N }) {
   return (
     <section className="card">
       <h2 className="card-title">{title}</h2>
       <div className="card-body">
         {intro}
-        <div className="histogram-row">
-          {results.map((x, i) => (
-            <Histogram
-              key={x.key}
-              title={x.label}
-              subtitle={`${count(x.result.n)} ${x.result.n === 1 ? "person" : "people"} per sample · ${samplesText(
-                x.result
-              )}${x.result.seed === null ? "" : ` · seed ${x.result.seed}`} · ${typeText(x.result)}`}
-              edges={bins.edges}
-              counts={bins.counts[i]}
-              truth={truth}
-              yMax={yMax}
-            />
-          ))}
-        </div>
+        <RangeChart results={results} truth={truth} />
         <p className="note">
-          <strong>How to read these charts:</strong> each sample gives one average cost. Each bar
-          shows how many samples gave an average in that dollar range; taller bars mean more samples
-          landed there. The black line is the true average cost of all {count(N)} people. All charts
-          in this box use the same scale, so you can compare them directly.
+          <strong>How to read this chart:</strong> each faint dot is the mean cost from one sample.
+          The bold bar covers the middle 95% of those dots, and the large dot is their mean. The
+          black line is the true mean of all {count(N)} people. Hover over a dot to see its value.
         </p>
         <div className="table-wrap">
           <table className="shares summary">
@@ -46,9 +25,10 @@ export default function ExperimentPanel({ title, intro, results, bins, truth, N 
                 <th scope="col">Type</th>
                 <th scope="col">Seed</th>
                 <th scope="col">Samples taken</th>
-                <th scope="col">True average</th>
-                <th scope="col">Average of the sample averages</th>
-                <th scope="col">Bias (average miss)</th>
+                <th scope="col">True mean</th>
+                <th scope="col">Mean of the sample means</th>
+                <th scope="col">Middle 95% of the sample means</th>
+                <th scope="col">Bias (mean miss)</th>
                 <th scope="col">SD (spread)</th>
                 <th scope="col">RMSE (typical error)</th>
               </tr>
@@ -66,6 +46,7 @@ export default function ExperimentPanel({ title, intro, results, bins, truth, N 
                   <td>{samplesText(x.result)}</td>
                   <td>{dollars(truth)}</td>
                   <td>{dollars(x.summary.meanEstimate)}</td>
+                  <td>{dollars(x.range.low)} to {dollars(x.range.high)}</td>
                   <td>{dollars(x.summary.bias)}</td>
                   <td>{dollars(x.summary.sd)}</td>
                   <td>{dollars(x.summary.rmse)}</td>
@@ -76,29 +57,26 @@ export default function ExperimentPanel({ title, intro, results, bins, truth, N 
         </div>
         <dl className="glossary">
           <div>
-            <dt>Bias (average miss)</dt>
+            <dt>Bias (mean miss)</dt>
             <dd>
-              How far the average of all the sample averages is from the true average. A minus sign
-              means below the true average.
+              How far the mean of the sample means is from the true mean. Minus means below.
             </dd>
           </div>
           <div>
             <dt>SD (spread)</dt>
-            <dd>How much the sample averages vary from one sample to the next.</dd>
+            <dd>How much the sample means vary from one sample to the next.</dd>
           </div>
           <div>
             <dt>RMSE (typical error)</dt>
             <dd>
-              The typical size of the miss for one sample, combining bias and spread
-              (RMSE² = bias² + SD²).
+              The typical miss for one sample, combining bias and spread (RMSE² = bias² + SD²).
             </dd>
           </div>
           <div>
             <dt>Monte Carlo or exact</dt>
             <dd>
-              Monte Carlo means the computer drew many random samples, so a bias that is not exactly
-              zero can be due to chance. Exact means every possible starting point was listed once,
-              with no randomness and no seed.
+              Monte Carlo: many random samples, so a bias that is not exactly zero can be chance.
+              Exact: every possible starting spot listed once, with no randomness and no seed.
             </dd>
           </div>
         </dl>

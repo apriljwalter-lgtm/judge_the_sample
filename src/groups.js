@@ -3,13 +3,16 @@
 export const GROUP_COLUMNS = [
   { key: "smoker", label: "smoker", levels: ["no", "yes"] },
   { key: "region", label: "region", levels: ["northeast", "northwest", "southeast", "southwest"] },
-  { key: "age_band", label: "age_band", levels: ["18-29", "30-39", "40-49", "50-64"] },
+  { key: "age_band", label: "age group", levels: ["18-29", "30-39", "40-49", "50-64"] },
   { key: "sex", label: "sex", levels: ["female", "male"] },
 ];
 
 // Four colours checked to stay distinguishable for colour-blind viewers
 // when all four appear together (blue, orange, aqua, dark violet).
 export const GROUP_COLOURS = ["#2a78d6", "#eb6834", "#1baf7a", "#4a3aa7"];
+
+// Plain-language name for a group column, e.g. "age group" for age_band.
+export const groupLabel = (column) => GROUP_COLUMNS.find((c) => c.key === column).label;
 
 export function colourFor(column, group) {
   const col = GROUP_COLUMNS.find((c) => c.key === column);

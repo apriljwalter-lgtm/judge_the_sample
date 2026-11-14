@@ -9,7 +9,7 @@ import { parseCsv } from "../src/parse.js";
 import {
   makeRng, trueMean, sampleMean, srs, groupShares,
   systematic, stratifiedAllocation, stratifiedEstimate, stratified,
-  repeatedSampling, systematicExact, repeatedResult, summarizeEstimates, histogramBins,
+  repeatedSampling, systematicExact, repeatedResult, summarizeEstimates, percentile, middleRange,
 } from "../src/sampling.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -396,24 +396,22 @@ check("summarizeEstimates: same estimates give the same summary", () => {
   const a = summarizeEstimates(e, 13270), b = summarizeEstimates([...e], 13270);
   return a.bias === b.bias && a.sd === b.sd && a.rmse === b.rmse;
 });
-check("histogramBins: shared bins count every estimate once and cover the true mean", () => {
-  const truth = trueMean(pop, T);
-  const sets = [1, 10, 100].map((n) => repeatedResult({ method: "srs", population: pop, target: T, n, reps: 1000, seed: 2 }).estimates);
-  const h = histogramBins(sets, 30, [truth]);
-  const lo = h.edges[0], hi = h.edges[h.edges.length - 1];
-  if (h.counts.length !== 3) return "sets";
-  for (let i = 0; i < 3; i++) {
-    if (h.counts[i].length !== h.edges.length - 1) return "bin count";
-    if (h.counts[i].reduce((a, b) => a + b, 0) !== sets[i].length) return `total ${i}`;
-    if (!sets[i].every((e) => e >= lo && e < hi)) return `range ${i}`;
-  }
-  return (truth >= lo && truth < hi) || "truth outside";
+check("percentile: known answers on a small hand-made list (linear interpolation)", () => {
+  const v = [40, 10, 30, 20, 50]; // sorted: 10 20 30 40 50
+  return (percentile(v, 0) === 10 && percentile(v, 1) === 50 && percentile(v, 0.5) === 30 &&
+    close(percentile(v, 0.25), 20) && close(percentile(v, 0.1), 14) && v[0] === 40) || "mismatch";
 });
-check("histogramBins: equal-width bins, values placed correctly on a small hand-made example", () => {
-  const h = histogramBins([[0, 0.5, 1, 9.99], [10]], 10);
-  const widths = h.edges.slice(1).map((e, i) => e - h.edges[i]);
-  if (!widths.every((w) => close(w, h.width))) return "widths";
-  return (h.width === 1 && h.edges[0] === 0 && h.counts[0][0] === 2 && h.counts[0][1] === 1 && h.counts[0][9] === 1 && h.counts[1][10] === 1) || "mismatch";
+check("middleRange: 95% range of 0..100 is 2.5 to 97.5; low <= mean <= high; same input gives same output", () => {
+  const v = Array.from({ length: 101 }, (_, i) => i);
+  const r = middleRange(v);
+  const again = middleRange([...v].reverse());
+  return (close(r.low, 2.5) && close(r.high, 97.5) && r.low <= 50 && 50 <= r.high &&
+    r.low === again.low && r.high === again.high) || `got ${r.low}, ${r.high}`;
+});
+check("middleRange on real repeated-sampling estimates: inside the min-max of those estimates", () => {
+  const est = repeatedResult({ method: "srs", population: pop, target: T, n: 10, reps: 1000, seed: 2 }).estimates;
+  const r = middleRange(est);
+  return (r.low >= Math.min(...est) && r.high <= Math.max(...est) && r.low <= r.high) || "outside";
 });
 
 console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) FAILED.`);

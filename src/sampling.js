@@ -258,32 +258,25 @@ export function summarizeEstimates(estimates, truth) {
   return { count: m, meanEstimate: meanEst, bias: meanEst - truth, sd, rmse };
 }
 
-/** A "nice" width (1, 2, 2.5 or 5 times a power of ten) at least as big as `raw`. */
-function niceWidth(raw) {
-  const p = 10 ** Math.floor(Math.log10(raw));
-  for (const f of [1, 2, 2.5, 5, 10]) if (f * p >= raw) return f * p;
-  return 10 * p;
+/**
+ * Percentile p (0..1) of a list of numbers, by linear interpolation between sorted values
+ * (position p x (m - 1) in the sorted list).
+ */
+export function percentile(values, p) {
+  if (values.length === 0) throw new Error("No values");
+  if (!(p >= 0 && p <= 1)) throw new Error("p must be between 0 and 1");
+  const s = [...values].sort((a, b) => a - b);
+  const pos = p * (s.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return s[lo] + (s[hi] - s[lo]) * (pos - lo);
 }
 
 /**
- * Shared histogram bins for several results shown together, so they use the same dollar axis
- * and the same bins. `extra` values (for example the true mean) are kept inside the range.
- * Bins are [edge_i, edge_i+1). Returns { edges, width, counts } with one counts array per set.
- * (Display only: this does not change any estimate.)
+ * The range holding the middle `share` of the estimates (default 95%: from the 2.5th to the
+ * 97.5th percentile). Display summary only: it does not change any estimate.
  */
-export function histogramBins(estimateSets, binCount = 30, extra = []) {
-  const all = [...estimateSets.flat(), ...extra];
-  let lo = Math.min(...all);
-  let hi = Math.max(...all);
-  if (hi === lo) { lo -= 1; hi += 1; }
-  const width = niceWidth((hi - lo) / binCount);
-  const start = Math.floor(lo / width) * width;
-  const bins = Math.floor((hi - start) / width) + 1;
-  const edges = Array.from({ length: bins + 1 }, (_, i) => start + i * width);
-  const counts = estimateSets.map((set) => {
-    const c = new Array(bins).fill(0);
-    for (const e of set) c[Math.min(bins - 1, Math.floor((e - start) / width))]++;
-    return c;
-  });
-  return { edges, width, counts };
+export function middleRange(estimates, share = 0.95) {
+  const tail = (1 - share) / 2;
+  return { low: percentile(estimates, tail), high: percentile(estimates, 1 - tail) };
 }

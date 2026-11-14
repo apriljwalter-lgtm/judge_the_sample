@@ -8,9 +8,9 @@ export default function RowOrderStrip({ N, positions }) {
   return (
     <div className="row-order">
       <div className="row-order-title">
-        Where the sampled rows sit in the file's row order (row 1 on the left, row {count(N)} on the right)
+        Where the picked people sit in the file (first row on the left, last row on the right)
         <span className="row-order-key">
-          <span className="key-rowmark" aria-hidden="true" /> = a sampled row
+          <span className="key-rowmark" aria-hidden="true" /> = a picked person
         </span>
       </div>
       <svg viewBox={`0 0 ${N} 40`} preserveAspectRatio="none" width="100%" height="40" role="img"

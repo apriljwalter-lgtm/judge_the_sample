@@ -58,7 +58,7 @@ export default function MethodPanel({
               </aside>
             </div>
             <div className="how">
-              <h3>How this sample was picked</h3>
+              <h3>How the people were picked</h3>
               {children}
               <RowOrderStrip N={N} positions={positions} />
             </div>

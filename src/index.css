@@ -377,23 +377,37 @@ figcaption {
   border-color: var(--ink-2);
   border-bottom: 2px solid #ffffff;
 }
-.histogram-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-@media (max-width: 900px) {
-  .histogram-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.histogram {
+.range-chart {
   margin: 8px 0;
 }
-.histogram figcaption {
-  color: var(--ink);
+.range-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.range-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.range-row {
+  margin: 2px 0 10px;
+}
+.range-row-label {
   font-size: 0.9rem;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+}
+.range-row-label span {
+  color: var(--ink-2);
+  font-size: 0.82rem;
+}
+.range-chart svg {
+  display: block;
 }
 .shares th[scope="row"] .note {
   font-weight: 400;
@@ -417,4 +431,17 @@ figcaption {
   display: inline;
   margin: 0;
   color: var(--ink-2);
+}
+
+/* "Show the details" fold-out inside a method panel */
+.details {
+  margin: 4px 0 10px;
+}
+.details summary {
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+}
+.details[open] summary {
+  margin-bottom: 4px;
 }

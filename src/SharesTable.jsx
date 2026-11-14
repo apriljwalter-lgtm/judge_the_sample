@@ -1,4 +1,4 @@
-import { colourFor } from "./groups.js";
+import { colourFor, groupLabel } from "./groups.js";
 import { count, percent } from "./format.js";
 
 // One table: each group's count and share in the whole population and in each method's sample.
@@ -6,17 +6,17 @@ import { count, percent } from "./format.js";
 export default function SharesTable({ column, population, samples, N }) {
   return (
     <section className="card">
-      <h2 className="card-title">Share of each {column} group in the whole population and in each sample</h2>
+      <h2 className="card-title">Does each sample have the right mix of {groupLabel(column)}?</h2>
       <div className="card-body">
       <div className="table-wrap">
         <table className="shares">
           <thead>
             <tr>
               <th scope="col" rowSpan={2}>
-                {column} group
+                {groupLabel(column)}
               </th>
               <th scope="colgroup" colSpan={2} className="group-head">
-                Whole population ({count(N)} people)
+                Whole file ({count(N)} people)
               </th>
               {samples.map((s) => (
                 <th key={s.name} scope="colgroup" colSpan={2} className="group-head">
@@ -58,7 +58,7 @@ export default function SharesTable({ column, population, samples, N }) {
           </tbody>
         </table>
       </div>
-      <p className="note">Each sample has n people; "–" means that method drew no sample at this n.</p>
+      <p className="note">Compare each sample's shares with the whole file. "–" means no sample was drawn at this n.</p>
       </div>
     </section>
   );
