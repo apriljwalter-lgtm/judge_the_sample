@@ -280,3 +280,64 @@ export function middleRange(estimates, share = 0.95) {
   const tail = (1 - share) / 2;
   return { low: percentile(estimates, tail), high: percentile(estimates, 1 - tail) };
 }
+
+// ---------------------------------------------------------------------------
+// Stage 5: the student's modified population (a labelled copy; the original is never changed)
+// ---------------------------------------------------------------------------
+
+export const CHILD_BAND = "0-17";
+const SEXES = ["female", "male"];
+const REGIONS = ["northeast", "northwest", "southeast", "southwest"];
+export const MAX_ADDED = 5000;
+
+/**
+ * The student's challenge (DECISIONS.md section 5, revision 2026-11-14): a NEW array holding every
+ * original row (unchanged, same relative order) plus `count` SIMULATED children, placed at random
+ * positions in the row order (every set of positions equally likely). Each simulated row:
+ *   age: whole number 0-17, equal chance; age_band "0-17";
+ *   sex: female/male 50/50; region: each of the 4 regions 25%; children: 0; bmi: blank (null);
+ *   smoker: aged 14-17 -> "yes" with chance `smokerShare`, otherwise "no"; aged 0-13 -> always "no";
+ *   target (charges): equal chance for any value from the original rows' lowest to highest;
+ *   row_id continues after the largest original row_id; simulated: true.
+ * Everything is driven by `seed`, so the same settings always rebuild the same copy.
+ */
+export function addSimulatedChildren(population, { count, smokerShare, seed, target }) {
+  if (!Number.isInteger(count) || count < 0 || count > MAX_ADDED) {
+    throw new Error(`Children added must be a whole number from 0 to ${MAX_ADDED}`);
+  }
+  if (!(smokerShare >= 0 && smokerShare <= 1)) throw new Error("Smoker share must be between 0 and 1");
+  if (count === 0) return population.slice();
+  const rng = makeRng(seed);
+  let lo = Infinity, hi = -Infinity, maxId = 0;
+  for (const r of population) {
+    lo = Math.min(lo, r[target]);
+    hi = Math.max(hi, r[target]);
+    maxId = Math.max(maxId, r.row_id);
+  }
+  const added = [];
+  for (let i = 0; i < count; i++) {
+    const age = Math.floor(rng() * 18);
+    const sex = SEXES[Math.floor(rng() * 2)];
+    const region = REGIONS[Math.floor(rng() * 4)];
+    const smokerDraw = rng();
+    const value = lo + rng() * (hi - lo);
+    added.push({
+      row_id: maxId + i + 1, age, age_band: CHILD_BAND, sex, bmi: null, children: 0,
+      smoker: age >= 14 && smokerDraw < smokerShare ? "yes" : "no", region, [target]: value,
+      simulated: true,
+    });
+  }
+  // Random positions for the added rows among all N + count positions.
+  const total = population.length + count;
+  const positions = new Set(srs(Array.from({ length: total }, (_, i) => i), count, rng));
+  const out = new Array(total);
+  let a = 0, o = 0;
+  for (let k = 0; k < total; k++) out[k] = positions.has(k) ? added[a++] : population[o++];
+  return out;
+}
+
+/** The groups of `column` that actually occur in `population`, in the given order. */
+export function presentLevels(population, column, order) {
+  const seen = new Set(population.map((r) => r[column]));
+  return order.filter((g) => seen.has(g));
+}

@@ -377,6 +377,19 @@ figcaption {
   border-color: var(--ink-2);
   border-bottom: 2px solid #ffffff;
 }
+.button {
+  font: inherit;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 1px solid var(--ink-2);
+  border-radius: 6px;
+  background: #f0efec;
+  color: var(--ink);
+  cursor: pointer;
+}
+.button:hover {
+  background: #e4e3de;
+}
 .range-chart {
   margin: 8px 0;
 }

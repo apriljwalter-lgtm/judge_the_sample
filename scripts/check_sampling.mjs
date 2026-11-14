@@ -10,6 +10,7 @@ import {
   makeRng, trueMean, sampleMean, srs, groupShares,
   systematic, stratifiedAllocation, stratifiedEstimate, stratified,
   repeatedSampling, systematicExact, repeatedResult, summarizeEstimates, percentile, middleRange,
+  addSimulatedChildren, presentLevels, CHILD_BAND,
 } from "../src/sampling.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -412,6 +413,83 @@ check("middleRange on real repeated-sampling estimates: inside the min-max of th
   const est = repeatedResult({ method: "srs", population: pop, target: T, n: 10, reps: 1000, seed: 2 }).estimates;
   const r = middleRange(est);
   return (r.low >= Math.min(...est) && r.high <= Math.max(...est) && r.low <= r.high) || "outside";
+});
+
+// --- Stage 5: the student's modified population ------------------------------
+const BANDS4 = ["18-29", "30-39", "40-49", "50-64"];
+const ORDER5 = [CHILD_BAND, ...BANDS4];
+const SPEC = { count: 374, smokerShare: 0.02, seed: 12345, target: T };
+const snapshot = JSON.stringify(pop);
+const mod = addSimulatedChildren(pop, SPEC);
+const sim = mod.filter((r) => r.simulated);
+
+check("modified copy: 1,338 + 374 rows; original rows kept in the same relative order", () => {
+  const originals = mod.filter((r) => !r.simulated);
+  return (mod.length === N + 374 && sim.length === 374 && sameIds(originals, pop)) || "rows";
+});
+check("modified copy: the original population is not changed in memory (and the file check above still passes)", () =>
+  (JSON.stringify(pop) === snapshot && pop.length === N && !pop.some((r) => r.simulated)) || "changed");
+check("modified copy: 0 children added gives exactly the baseline rows", () =>
+  sameIds(addSimulatedChildren(pop, { ...SPEC, count: 0 }), pop) || "differs");
+check("modified copy: the same settings and seed rebuild the identical copy", () =>
+  JSON.stringify(addSimulatedChildren(pop, SPEC)) === JSON.stringify(mod) || "differs");
+check("simulated rows follow the rules: age 0-17 whole, band 0-17, children 0, bmi blank, valid sex and region, charges within the original min-max", () => {
+  const lo = Math.min(...pop.map((r) => r[T]));
+  const hi = Math.max(...pop.map((r) => r[T]));
+  const bad = sim.find((r) =>
+    !Number.isInteger(r.age) || r.age < 0 || r.age > 17 || r.age_band !== CHILD_BAND || r.children !== 0 ||
+    r.bmi !== null || !["female", "male"].includes(r.sex) ||
+    !["northeast", "northwest", "southeast", "southwest"].includes(r.region) ||
+    !(r[T] >= lo && r[T] <= hi) || !["yes", "no"].includes(r.smoker));
+  return !bad || `row ${bad.row_id}`;
+});
+check("simulated rows: only ages 14-17 can be smokers", () => !sim.some((r) => r.smoker === "yes" && r.age < 14) || "under-14 smoker");
+check("simulated rows: smoker chance 0% gives no smokers; 100% makes every 14-17 a smoker and no one under 14", () => {
+  const none = addSimulatedChildren(pop, { ...SPEC, smokerShare: 0 }).filter((r) => r.simulated);
+  const all = addSimulatedChildren(pop, { ...SPEC, smokerShare: 1 }).filter((r) => r.simulated);
+  return (!none.some((r) => r.smoker === "yes") && all.every((r) => (r.age >= 14) === (r.smoker === "yes"))) || "mismatch";
+});
+check("simulated rows: row_id continues after 1,338 with no duplicates in the copy", () => {
+  const ids = mod.map((r) => r.row_id);
+  return (new Set(ids).size === ids.length && sim.every((r) => r.row_id > 1338)) || "ids";
+});
+check("modified copy: invalid settings are rejected (negative, fractional or too many children; share above 100%)", () =>
+  [() => addSimulatedChildren(pop, { ...SPEC, count: -1 }), () => addSimulatedChildren(pop, { ...SPEC, count: 1.5 }),
+    () => addSimulatedChildren(pop, { ...SPEC, count: 999999 }), () => addSimulatedChildren(pop, { ...SPEC, smokerShare: 1.5 })]
+    .every(throws) || "accepted");
+check("modified copy: its true mean is recalculated from its own rows (sum of all charges ÷ 1,712)", () => {
+  const sum = pop.reduce((t, r) => t + r[T], 0) + sim.reduce((t, r) => t + r[T], 0);
+  return close(trueMean(mod, T), sum / (N + 374)) || "mismatch";
+});
+check("modified copy: reordering the same rows leaves its true mean unchanged", () => {
+  const shuffled = srs(mod, mod.length, makeRng(99));
+  return close(trueMean([...shuffled].reverse(), T), trueMean(mod, T)) || "changed";
+});
+check("presentLevels: baseline has 4 age groups; modified copy has 5, with 0-17 first", () => {
+  const b = presentLevels(pop, "age_band", ORDER5);
+  const m = presentLevels(mod, "age_band", ORDER5);
+  return (b.join() === BANDS4.join() && m.join() === ORDER5.join()) || `${b} / ${m}`;
+});
+check("stratified on the modified copy: 5 strata, allocation totals n = 100, weights sum to 1 and use the copy's group sizes", () => {
+  const a = stratifiedAllocation(mod, "age_band", 100, presentLevels(mod, "age_band", ORDER5));
+  const sizesOk = a.every((s) => s.Nh === mod.filter((r) => r.age_band === s.group).length && close(s.weight, s.Nh / mod.length));
+  return (a.length === 5 && a.reduce((t, s) => t + s.nh, 0) === 100 && close(a.reduce((t, s) => t + s.weight, 0), 1) && sizesOk) || "allocation";
+});
+check("challenge baseline rows reproduce the Stage 4 results (same n, seed and repetitions)", () => {
+  const base = { population: pop, target: T, n: 100, reps: 100, seed: 12345, column: "age_band" };
+  const s4 = repeatedResult({ ...base, method: "stratified", levels: BANDS4 }).estimates;
+  const s5 = repeatedResult({ ...base, method: "stratified", levels: presentLevels(pop, "age_band", ORDER5) }).estimates;
+  const r4 = repeatedResult({ ...base, method: "srs" }).estimates;
+  const r5 = repeatedResult({ ...base, method: "srs" }).estimates;
+  return (s4.every((e, i) => e === s5[i]) && r4.every((e, i) => e === r5[i])) || "differ";
+});
+check("modified results are measured against the copy's own true mean; RMSE² = bias² + SD²", () => {
+  const t = trueMean(mod, T);
+  const est = repeatedResult({ method: "stratified", population: mod, target: T, n: 100, reps: 100, seed: 12345,
+    column: "age_band", levels: presentLevels(mod, "age_band", ORDER5) }).estimates;
+  const s = summarizeEstimates(est, t);
+  const meanEst = est.reduce((a, b) => a + b, 0) / est.length;
+  return (close(s.bias, meanEst - t) && close(s.rmse ** 2, s.bias ** 2 + s.sd ** 2) && est.length === 100) || "mismatch";
 });
 
 console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) FAILED.`);

@@ -11,6 +11,10 @@ import GroupControls from "./GroupControls.jsx";
 import SharesTable from "./SharesTable.jsx";
 import ExperimentPanel from "./ExperimentPanel.jsx";
 import ExperimentSettings from "./ExperimentSettings.jsx";
+import ChallengeTab from "./ChallengeTab.jsx";
+import useWholeNumberInput from "./useWholeNumberInput.js";
+
+const TABS = ["single", "experiments", "challenge"];
 
 const N = population.length;
 const DEFAULT_N = 100;
@@ -30,17 +34,6 @@ const ROW_ORDER_NOTE = "The rows are in the order the file came in. That is not 
 
 const people = (x) => `${count(x)} ${x === 1 ? "person" : "people"}`;
 
-function useWholeNumberInput(initial, min, max) {
-  const [value, setValue] = useState(initial);
-  const [text, setText] = useState(String(initial));
-  const valid = (t) => /^\d+$/.test(t) && Number(t) >= min && Number(t) <= max;
-  const onChange = (t) => {
-    setText(t);
-    if (valid(t)) setValue(Number(t));
-  };
-  return { value, text, onChange, isValid: valid(text) };
-}
-
 export default function App() {
   const truth = useMemo(() => trueMean(population, TARGET), []);
   const nInput = useWholeNumberInput(DEFAULT_N, 1, N);
@@ -48,8 +41,11 @@ export default function App() {
   const n = nInput.value;
   const seed = seedInput.value;
   const [groupColumn, setGroupColumn] = useState("smoker");
-  // The open tab is kept in the address (#single or #experiments), so a refresh reopens it.
-  const [tab, setTab] = useState(() => (window.location.hash === "#experiments" ? "experiments" : "single"));
+  // The open tab is kept in the address (#single, #experiments or #challenge), so a refresh reopens it.
+  const [tab, setTab] = useState(() => {
+    const fromHash = window.location.hash.slice(1);
+    return TABS.includes(fromHash) ? fromHash : "single";
+  });
   useEffect(() => {
     window.history.replaceState(null, "", `#${tab}`);
   }, [tab]);
@@ -160,6 +156,7 @@ export default function App() {
         {[
           ["single", "Single samples"],
           ["experiments", "Repeated-sampling experiments"],
+          ["challenge", "Challenge: baseline vs modified"],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -428,6 +425,8 @@ export default function App() {
       />
       </>
       )}
+
+      {tab === "challenge" && <ChallengeTab population={population} truth={truth} maxSeed={MAX_SEED} />}
     </main>
   );
 }

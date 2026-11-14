@@ -45,7 +45,11 @@ export const samplesText = (r) =>
   r.type === "exact" ? `all ${count(r.count)} possible starts` : `${count(r.count)} samples`;
 
 export default function RangeChart({ results, truth }) {
-  const all = results.flatMap((x) => x.result.estimates).concat(truth);
+  // A row may carry its own `truth` (the true mean of the population it was drawn from, e.g.
+  // baseline vs modified). Then each row's black line sits at its own population's true mean.
+  const perRow = results.some((item) => item.truth !== undefined);
+  const rowTruth = (item) => item.truth ?? truth;
+  const all = results.flatMap((item) => [...item.result.estimates, rowTruth(item)]);
   const { lo, hi, ticks } = niceAxis(Math.min(...all), Math.max(...all));
   const x = (v) => PAD + ((v - lo) / (hi - lo)) * (W - 2 * PAD);
   const tx = x(truth);
@@ -68,13 +72,15 @@ export default function RangeChart({ results, truth }) {
         </li>
         <li>
           <svg width="10" height="14" aria-hidden="true"><line x1="5" x2="5" y1="0" y2="14" stroke={INK} strokeWidth="2" /></svg>
-          True mean ({dollars(truth)})
+          {perRow ? "True mean of that row's own population (value in the row's label)" : `True mean (${dollars(truth)})`}
         </li>
       </ul>
 
-      <svg viewBox={`0 0 ${W} 22`} width="100%" aria-hidden="true" className="range-top">
-        <text x={tx} y="16" textAnchor="middle" fill={INK} fontSize="15" fontWeight="600">True mean</text>
-      </svg>
+      {!perRow && (
+        <svg viewBox={`0 0 ${W} 22`} width="100%" aria-hidden="true" className="range-top">
+          <text x={tx} y="16" textAnchor="middle" fill={INK} fontSize="15" fontWeight="600">True mean</text>
+        </svg>
+      )}
 
       {results.map((item) => {
         const r = item.result;
@@ -87,6 +93,7 @@ export default function RangeChart({ results, truth }) {
               <span>
                 · {count(r.n)} {r.n === 1 ? "person" : "people"} per sample · {samplesText(r)}
                 {r.seed === null ? "" : ` · seed ${r.seed}`} · {typeText(r)}
+                {perRow && <> · <strong>true mean {dollars(rowTruth(item))}</strong></>}
               </span>
             </div>
             <svg viewBox={`0 0 ${W} ${STRIP_H}`} width="100%" role="img"
@@ -105,7 +112,9 @@ export default function RangeChart({ results, truth }) {
               </line>
               <line x1={x(low)} x2={x(low)} y1={MID - 10} y2={MID + 10} stroke={BAR} strokeWidth="3" />
               <line x1={x(high)} x2={x(high)} y1={MID - 10} y2={MID + 10} stroke={BAR} strokeWidth="3" />
-              <line x1={tx} x2={tx} y1="0" y2={STRIP_H} stroke={INK} strokeWidth="2.5" />
+              <line x1={x(rowTruth(item))} x2={x(rowTruth(item))} y1="0" y2={STRIP_H} stroke={INK} strokeWidth="2.5">
+                <title>{`True mean of this row's population: ${dollars(rowTruth(item))}`}</title>
+              </line>
               {/* Small labels for the two ends of the bold bar, written outward so they never overlap. */}
               <text x={x(low) + 4} y="15" textAnchor="end" fill={BAR} fontSize="13" fontWeight="600"
                 stroke="#f7f7f5" strokeWidth="4" paintOrder="stroke">{axisLabel(low)}</text>

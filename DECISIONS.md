@@ -29,7 +29,8 @@ For each stage: the option I chose, why, and what it is meant to help a user lea
 - Stage 3, sampling interactions and stratification column: I selected to display all three sampling methods together for easy comparison.  They will each display its own mean. I chose to stratify by age_band. This should help the learner to easily compare the sampling differences and make a judgement about how the methods compare to each other. 
 - Stage 4, presentation of the method comparison and sample-size experiments: I selected to display the information as histograms and to update automatically when the settings are changed. I am hoping this will show the spread of the comparison numbers better than tables that I already have selected. This should make the spread more visible to the learner so they can see the range of information. 
 Revision 11/14/26: After visualizing the data as histograms, I found them hard to understand what was being displayed, I asked AI to suggest a better alternative to display the data and chose range bars with faint sample dots, I am hoping it simplfies the information displayed and helps a user to see the difference in the samples.  
-- Stage 5, challenge controls and my alternative method or correction: 
+- Stage 5, challenge controls and my alternative method or correction: I selected a challenge tab sholing all four results in one chart with an adjustable setting for the modified poulation, but it is preset to my hypothesis values. I chose simple random as my alternative as I think it will vary most from the stratified samples. It should clearly demonstrate the change in population and how it impacts the sampling of the data. 
+
 
 ## 3. Results table
 
@@ -74,7 +75,7 @@ Hypothesis, written before I consult my agent:
 - Evidence that would contradict my hypothesis: If the group weights are equal. 
 
 
-Revision 11/14/26: I misunderstood what the population change was asking and would like add a new age group to the existing population 0-17, the mean would recalculate based on the new rows that get added. I would like to add a group of 374 (randomly selected number by me) children with generated AI charges that can be equal to or between the existing high and low numbers they are not real patients or real charges. For each other row sex will still be completed male or female randomly, bmi can be AI generated based on normal bmi for the age range, children will always be no or 0 depending on the data inputs, if the child is greater than 13 randomly add a smoker into the population, and randomize the regions. Add a new age band 0-17 and they should get mixed into the existing data set.
+Revision 11/14/26: I misunderstood what the population change was asking and would like add a new age group to the existing population 0-17, the mean would recalculate based on the new rows that get added. I would like to add a group of 374 (randomly selected number by me) children with generated AI charges that can be equal to or between the existing high and low numbers they are not real patients or real charges. For each other row sex will still be completed male or female randomly, bmi can be left blank as needed, children will always be no or 0 depending on the data inputs, if the child is greater than 13 randomly add a smoker into the population, and randomize the regions. Add a new age band 0-17 and they should get mixed into the existing data set.
 New hypothesis:
 - Date written: 11/14
 - Method I chose to challenge: Stratefied by age group.
