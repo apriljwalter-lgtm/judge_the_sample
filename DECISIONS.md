@@ -58,12 +58,12 @@ rows use the same n; a challenge baseline row may repeat a matching stage 4 resu
 
 ## 4. Findings (in my own words, using my own numbers)
 
-- (a) Method comparison: the three sampling methods compared at n = 100 (bias versus variability, and for which population):
-- (b) Sample-size finding: how sample size affects the spread of estimates and the estimation error, and what a larger sample cannot fix:
+- (a) Method comparison: the three sampling methods compared at n = 100 (bias versus variability, and for which population): In comparing the three methods simple random, systematic, and stratified by age group they all are using the baseline population. Simple random has the highest bias (-$230.53) but the middle SD ($1210.42).  Systematic had the middle bias ($76.92) and the lowest spread ($1025.44). Stratified by age group had the lowest bias ($66.08) and the highest spread ($1269.04) but it also has the highest RMSE ($1270.76). For this population I would probably go with the systematic sampling because it has a lower bias than simple random's bias but a little higher than stratified's but it also has the smallest RMSE ($1028.32). The middle 95% of the sample means covers from $11197.28 to $14884.36.  This seems like a good middle ground to ensure the sample is inclusive enough of the full population. 
+- (b) Sample-size finding: how sample size affects the spread of estimates and the estimation error, and what a larger sample cannot fix: The sample size affects the spread of estimates the most moving from 1 ($1428.45 to $39876.38) to 100 ($10707.61 to $15224.34). At 100 the spread is not very diverse like it is at 1 person. The RMSE for 1 person is also much larger at $10,706.90 compared to 100 people at $1,232.18. The larger sample cannot fix any bias in the sampling and the spread shrinks as the sample size grows. 
 
 ## 5. Challenge (hypothesis written independently, before consulting my agent)
 
-Hypothesis, written before I consult my agent:
+Hypothesis, written before I consult my agent: Challen
 
 - Date written:
 - Method I chose to challenge:
