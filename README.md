@@ -1,13 +1,11 @@
 # Judge the Sample: my sampling app
-
-<!-- If your course asks for a public app, put its link on the next line. Otherwise delete this comment. -->
-App link (optional):
+App link (optional): https://apriljwalter-lgtm.github.io/judge_the_sample/
 
 **Central question:** Which sampling method would you trust for this population, at what sample size, and with what limits?
 
-- **Scenario:** <!-- clinic waiting times / healthcare costs / wearable heart rate -->
-- **Data file:** `data/<!-- file name -->` (source, licence and provenance in `data/README.md`)
-- **Seed(s) used for my evidence** (exact enumeration needs no seed):
+- **Scenario:** healthcare cost
+- **Data file:** data/healthcare_costs.csv
+- **Seed(s) used for my evidence** (exact enumeration needs no seed): 12345, challenge copy seed 12345
 
 ## Run it on your computer
 
