@@ -681,6 +681,8 @@ input[type="radio"] {
 .tour-note {
   position: fixed;
   width: min(340px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
   pointer-events: auto;
   background: #fffdf6;
   color: var(--ink);

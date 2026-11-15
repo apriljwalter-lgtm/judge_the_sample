@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Short guided tours, one per tab. Each step spotlights the first element with a matching
 // data-tour attribute and explains what it is and how to read it (never what the results show).
@@ -26,11 +26,36 @@ export const TOURS = {
   ],
 };
 
+// Where to put the note: below the highlighted area if it fits, else above, else beside it (left or
+// right), else at the bottom of the screen. Always kept fully inside the window.
+function placeNote(rect, w, h) {
+  const gap = 18;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const clampX = (x) => Math.min(Math.max(12, x), vw - w - 12);
+  const clampY = (y) => Math.min(Math.max(12, y), vh - h - 12);
+  if (!rect) return { top: clampY(80), left: 12 };
+  if (rect.bottom + gap + h <= vh - 12) return { top: rect.bottom + gap, left: clampX(rect.left) };
+  if (rect.top - gap - h >= 12) return { top: rect.top - gap - h, left: clampX(rect.left) };
+  if (rect.left - gap - w >= 12) return { top: clampY(rect.top), left: rect.left - gap - w };
+  if (rect.right + gap + w <= vw - 12) return { top: clampY(rect.top), left: rect.right + gap };
+  return { top: vh - h - 12, left: clampX(rect.left) };
+}
+
 export default function Tour({ steps, onClose }) {
   const available = steps.filter((s) => document.querySelector(`[data-tour="${s.target}"]`));
   const [i, setI] = useState(0);
   const [rect, setRect] = useState(null);
+  const [size, setSize] = useState({ w: 340, h: 200 }); // the note's real size, measured below
+  const noteRef = useRef(null);
   const step = available[i];
+
+  useLayoutEffect(() => {
+    const box = noteRef.current?.getBoundingClientRect();
+    if (box && (Math.abs(box.width - size.w) > 1 || Math.abs(box.height - size.h) > 1)) {
+      setSize({ w: box.width, h: box.height });
+    }
+  });
 
   const measure = useCallback(() => {
     if (!step) return;
@@ -65,9 +90,8 @@ export default function Tour({ steps, onClose }) {
 
   if (!step) return null;
   const pad = 8;
-  const below = rect ? rect.bottom + 16 + 190 < window.innerHeight : true;
-  const noteTop = rect ? (below ? rect.bottom + pad + 10 : Math.max(12, rect.top - pad - 10 - 190)) : 80;
-  const noteLeft = rect ? Math.min(Math.max(12, rect.left), window.innerWidth - 352) : 12;
+  const spot = rect && { top: rect.top - pad, left: rect.left - pad, right: rect.right + pad, bottom: rect.bottom + pad };
+  const { top: noteTop, left: noteLeft } = placeNote(spot, size.w, size.h);
 
   return (
     <div className="tour" role="dialog" aria-label={`Tour step ${i + 1} of ${available.length}: ${step.title}`}>
@@ -77,7 +101,7 @@ export default function Tour({ steps, onClose }) {
           style={{ top: rect.top - pad, left: rect.left - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }}
         />
       )}
-      <div className="tour-note" style={{ top: noteTop, left: noteLeft }}>
+      <div className="tour-note" ref={noteRef} style={{ top: noteTop, left: noteLeft }}>
         <div className="tour-count">Step {i + 1} of {available.length}</div>
         <h3>{step.title}</h3>
         <p>{step.text}</p>
