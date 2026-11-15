@@ -14,7 +14,7 @@ export default function ChartLegend({ groupColumn }) {
           <span className="key-faint" aria-hidden="true" /> Not picked
         </li>
       </ul>
-      <h3>Colour: {groupLabel(groupColumn)}</h3>
+      <h3>Color: {groupLabel(groupColumn)}</h3>
       <ul>
         {levels.map((g) => (
           <li key={g}>

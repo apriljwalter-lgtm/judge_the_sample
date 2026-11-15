@@ -59,6 +59,13 @@ export default function App() {
   const n = nInput.value;
   const seed = seedInput.value;
   const [groupColumn, setGroupColumn] = useState("smoker");
+  // Single samples tab: back to the starting settings.
+  const resetSingle = () => {
+    nInput.reset(DEFAULT_N);
+    seedInput.reset(DEFAULT_SEED);
+    setGroupColumn("smoker");
+    celebrate();
+  };
   const [showIntro, setShowIntro] = useState(() => !introAlreadySeen() && !prefersReducedMotion());
   useEffect(() => preloadSounds(), []); // load the recorded money sounds in the background
   const finishIntro = useCallback(() => {
@@ -269,6 +276,11 @@ export default function App() {
           <NumberSlider label="Seed" term="seed" input={seedInput} slider={false}
             help="A starting number for the random picks. The same seed and n always pick the same people." />
           <GroupControls value={groupColumn} onChange={(v) => { setGroupColumn(v); celebrate(); }} />
+          <p>
+            <button type="button" className="button" onClick={resetSingle}>
+              Reset (n = {DEFAULT_N}, seed {DEFAULT_SEED}, color by smoker)
+            </button>
+          </p>
         </div>
       </div>
       </section>

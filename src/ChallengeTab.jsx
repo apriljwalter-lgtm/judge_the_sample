@@ -94,7 +94,7 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
   return (
     <>
       <p>
-        This tab tests the challenge hypothesis (DECISIONS.md, section 5). It builds a labelled{" "}
+        This tab tests the challenge hypothesis (DECISIONS.md, section 5). It builds a labeled{" "}
         <strong>modified copy</strong> of the population by adding simulated children aged 0-17, then
         compares stratified sampling by age group with simple random sampling on both the{" "}
         <strong>baseline</strong> and the <strong>modified</strong> population, all at the same n.

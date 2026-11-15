@@ -91,7 +91,7 @@ export default function RangeChart({ results, truth }) {
             striped bar = modified population
           </li>
         )}
-        <li className="range-legend-note">colour = sampling method</li>
+        <li className="range-legend-note">color = sampling method</li>
       </ul>
 
       {!perRow && (

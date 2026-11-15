@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 // data-tour attribute and explains what it is and how to read it (never what the results show).
 export const TOURS = {
   single: [
-    { target: "settings", title: "Settings", text: "Choose how many people go in each sample (n) and a seed. The box and the slider always agree. You can also colour the dots by a group." },
+    { target: "settings", title: "Settings", text: "Choose how many people go in each sample (n) and a seed. The box and the slider always agree. You can also color the dots by a group." },
     { target: "dot-chart", title: "Every person is a dot", text: "Each dot is one of the 1,338 people, placed by their charges. Solid dots with an outline are the people this sample picked; faint dots are everyone else. The black line is the true mean; the dashed line is this sample's mean." },
     { target: "watch-draw", title: "Watch the draw", text: "Press this to watch the people being picked one at a time." },
     { target: "receipt", title: "The receipt", text: "This sample's mean next to the true mean, and how far apart they are for this one sample. Tap a gold coin for what a term means." },
