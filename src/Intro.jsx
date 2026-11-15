@@ -100,10 +100,10 @@ export default function Intro({ onDone }) {
           <Panel index={1} />
           <Panel index={2} withBack />
         </div>
-        <div className="env-front">
+        <div className="env-front" />
+        <div className="env-flap">
           <span className="env-seal">$</span>
         </div>
-        <div className="env-flap" />
       </div>
       <div className="intro-text">
         <p className="intro-tagline">

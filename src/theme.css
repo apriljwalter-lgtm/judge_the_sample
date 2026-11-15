@@ -362,13 +362,16 @@ input[type="radio"] {
   background: linear-gradient(#f0e4bc, #e0cf9c);
   clip-path: polygon(0 0, 50% 52%, 100% 0, 100% 100%, 0 100%);
 }
+/* The $ seal sits on the top flap, near its point (inside the flap's triangle). */
 .env-seal {
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 66%;
   transform: translate(-50%, -50%);
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
+  font-size: 1.05rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -839,4 +842,12 @@ input[type="radio"] {
 .picto-note { display: block; margin-top: 2px; font-size: 0.78rem; color: var(--ink-2); }
 @media (prefers-reduced-motion: reduce) {
   .person.hop { animation: none; }
+}
+
+/* The seal fades as the flap turns over, so a mirrored $ never shows on the flap's back. */
+.intro.opened .env-seal {
+  animation: seal-off 0.22s ease-in var(--t-flap, 0.05s) forwards;
+}
+@keyframes seal-off {
+  to { opacity: 0; }
 }
