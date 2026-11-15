@@ -48,10 +48,10 @@ value for modified rows). Keep each result in its own row: never pool estimates.
 | Methods at n = 100 | baseline | Stratified |age_band, Proportional allocation| 12345|100 | 100 | Monte Carlo | $13,270.42| $66.08 | $1,269.04 | $1,270.76|
 | Sample size | baseline | Simple random | no replacement | 12345| 1 |100|Monte Carlo |$13,270.42 |-$977.73 | $10,662.16 | $10,706.90|
 | Sample size | baseline | Simple random | no replacement| 12345| 10 | 100|Monte Carlo|$13,270.42 | -$412.19|$3,587.07 | $3,610.68| 
-| Challenge | baseline | (method I challenged) | | | | | | | | | |
-| Challenge | modified | (method I challenged) | | | | | | | | | |
-| Challenge | baseline | (alternative or correction) | | | | | | | | | |
-| Challenge | modified | (alternative or correction) | | | | | | | | | |
+| Challenge | baseline | stratified| 4 age groups proportional| 12345|100 |100 | Monte Carlo |$13270.42 |$66.08 | $1269.04|$1270.76 | 
+| Challenge | modified | stratified | 5 age groups proportional 374 simulated children, 2% smokers 14–17, copy seed 12345|12345 |100 | 100| Monte Carlo|$17577.21|$204.89 |$1392.91 | $1407.90| 
+| Challenge | baseline | simple random |no replacement| 12345 | 100| 100| Monte Carlo|$13270.42 |-$230.53 | $1210.42| $1232.18|
+| Challenge | modified | simple random |374 simulated children, 2% smokers 14–17, copy seed 12345 no replacement |12345 | 100| 100|Monte Carlo | $17577.21|$90.76 |$1625.99| $1628.52| 
 
 The simple random n = 100 row is also the n = 100 sample-size result when the population and
 settings match. If I reran it with different settings, I add a separate row. All four challenge
@@ -88,20 +88,39 @@ That the simplied random sampling mean actually has a smaller bias.
 
 After I test it:
 
-- Test settings (conditions, methods, alternative method or correction, n, seeds); results are in the table above:
-- (c) Challenge interpretation: did the evidence support my hypothesis? Bias versus variability, other explanations, what the alternative or correction showed, and any dated revision (keep the original above):
+- Test settings (conditions, methods, alternative method or correction, n, seeds); results are in the table above: Baseline was 1,338 people modified to 1,712 people, the change was 374 simulated children aged 0-17, 2% smoker chance for ages 14-17, copy seed 12345, the method challenged was stratified by age group baseline had 4, modified is 5, the alternative method was simple random, n=100, seed 12345, 100 samples, monte carlo
+- (c) Challenge interpretation: did the evidence support my hypothesis? Bias versus variability, other explanations, what the alternative or correction showed, and any dated revision (keep the original above): My prediction was that  I expected the sample mean should shift closer to the true mean with a smaller bias than simple random which was not supported. Looking at the bias for the modified age group stratified ($204.89) vs the modified simple random ($90.76) the modified simple random is much smaller than the stratified. The sample means do not appear to have shifted closer to the new true means for the modified stratified group but the simple random modified did shift closer to the true mean.  The bias for the modified ($204.89) shifts significantly from the baseline ($66.08) for stratified with the baseline being much smaller.  We see that the simple random actually does the opposite where the modified get smaller ($90.76) from the baseline (-$230.53). The simple random baseline's SD has a larger shift $1210.42 to $1625.99 compared to stratified $1269.04 to $1392.91. The app drew monte carlo 100 random samples, if a different set of 100 samples was pulled in a different seed the results could vary greatly. 
 
 
 
 
 ## 6. AI use
 
-- Tools used:
+- Tools used: Claude Code in VS Code
 - What I asked my agent to do, and what I checked myself:
 Section 1- I asked for the code to check the true mean, but ran it myself in the terminal. 
 Section 2- 
 Stage 2- AI checked, all rows load and charges are read as numbers, the true mean matches the original, the sample is n=100, its the same seed
 Stage 3- AI checked these all add up to n=100, its the same seed as previously, the systematic gives different rows and each  has an equal chance, the stratified grabs from each group
+Stage 4- AI built the repeated-sampling experiments, change the histograms to range bars, I also to simplify the wording and explanations on the pages
+I ran the experiments, and chose the settings, filled in the results table, and wrote finding a and b 
+
+Stage 5- AI was asked to build the challenge tab from the hypothesis
+ I  completed the hypothesis and revision and ran the challenge, filled in the table, and wrote my findings. 
 
 
 - Automated checks my agent reported (I did not let it interpret my results):
+
+Stage 2- the data file was unchanged, and the true mean matches the calculated value and doesn't change if rows are reordred
+
+Stage 3- the startified estimate is the population-weighted mean
+all three methos reproduce identical smaples with the same seed
+
+Stage 4
+systematic uses exact enumeration only for a whole number interval
+the n=100 simple random result is reused for experiment B
+
+Stage 5
+the original data file is unchanged
+stratified uses 5 age groups on the modified copy, with the allocation adding up to n
+

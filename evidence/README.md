@@ -24,3 +24,8 @@ Stage 4-
 Experiment A: method comparison, baseline population, all 3 methods, n=100, seed 12345, 100 repetitions, all use Monte Carlo, method-comparison-n100-seed12345-100reps.png, method-comparison-n100-seed12345-100reps-table.png
 
 Experiment B: sample size comparison, baseline population, simple random, n=1, 10, 100, seed 12345, 100 repetitions all use Monte Carlo,sample-size-comparison-srs-n1-10-100-seed12345-100reps.png.
+
+Stage 5- challenge-baseline-vs-modified-n100-seed12345-100reps.png
+challenge-baseline-vs-modified-n100-seed12345-100reps-table.png
+baseline 1338 vs modified 1712, 374 simulated children, 2% smokers aged 14-17, copy seed 12345, stratified by age group and simple random
+n=100, seed 12345, 100 repetitions, Monte Carlo
