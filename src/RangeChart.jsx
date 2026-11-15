@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { dollars, count } from "./format.js";
 
 // Range bars with faint sample dots: one row per result, all rows on the same dollar axis.
@@ -15,7 +16,6 @@ const INK = "#0b0b0b";
 const INK_2 = "#52514e";
 const AXIS = "#c3c2b7";
 const GRID = "#e2e1da";
-const DOT = "#6b8fb3";
 const BAR = "#1f4e79";
 
 // Whole-dollar axis labels: $12,500.
@@ -53,27 +53,45 @@ export default function RangeChart({ results, truth }) {
   const { lo, hi, ticks } = niceAxis(Math.min(...all), Math.max(...all));
   const x = (v) => PAD + ((v - lo) / (hi - lo)) * (W - 2 * PAD);
   const tx = x(truth);
-  const dotOpacity = results[0].result.count > 300 ? 0.18 : 0.35;
+  const dotOpacity = results[0].result.count > 300 ? 0.22 : 0.4;
+  const anyModified = results.some((item) => item.modified);
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const LEGEND = "#6b6a65"; // legend glyphs are neutral: they explain shapes, not methods
 
   return (
     <figure className="range-chart">
       <ul className="range-legend" aria-label="Legend">
         <li>
-          <svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="4" fill={DOT} opacity="0.5" /></svg>
+          <svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="4" fill={LEGEND} opacity="0.5" /></svg>
           one sample's mean
         </li>
         <li>
-          <svg width="26" height="14" aria-hidden="true"><line x1="1" x2="25" y1="7" y2="7" stroke={BAR} strokeWidth="6" /></svg>
+          <svg width="26" height="14" aria-hidden="true"><line x1="1" x2="25" y1="7" y2="7" stroke={LEGEND} strokeWidth="6" /></svg>
           middle 95% of the sample means (its two ends are written above it)
         </li>
         <li>
-          <svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill={BAR} stroke="#fff" strokeWidth="1.5" /></svg>
+          <svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill={LEGEND} stroke="#fff" strokeWidth="1.5" /></svg>
           mean of the sample means
         </li>
         <li>
           <svg width="10" height="14" aria-hidden="true"><line x1="5" x2="5" y1="0" y2="14" stroke={INK} strokeWidth="2" /></svg>
           {perRow ? "True mean of that row's own population (value in the row's label)" : `True mean (${dollars(truth)})`}
         </li>
+        {anyModified && (
+          <li>
+            <svg width="26" height="14" aria-hidden="true">
+              <defs>
+                <pattern id={`${uid}-legend-stripe`} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+                  <rect width="6" height="6" fill={LEGEND} />
+                  <rect width="2.5" height="6" fill="#ffffff" opacity="0.6" />
+                </pattern>
+              </defs>
+              <rect x="1" y="3" width="24" height="8" fill={`url(#${uid}-legend-stripe)`} />
+            </svg>
+            striped bar = modified population
+          </li>
+        )}
+        <li className="range-legend-note">colour = sampling method</li>
       </ul>
 
       {!perRow && (
@@ -86,9 +104,12 @@ export default function RangeChart({ results, truth }) {
         const r = item.result;
         const { low, high } = item.range;
         const name = r.type === "exact" ? "Start" : "Sample";
+        const color = item.color ?? BAR;
+        const stripeId = `${uid}-stripe-${item.key}`;
         return (
           <div key={item.key} className="range-row">
             <div className="range-row-label">
+              <span className="method-swatch" style={{ background: color }} aria-hidden="true" />
               <strong>{item.label}</strong>{" "}
               <span>
                 · {count(r.n)} {r.n === 1 ? "person" : "people"} per sample · {samplesText(r)}
@@ -98,29 +119,38 @@ export default function RangeChart({ results, truth }) {
             </div>
             <svg viewBox={`0 0 ${W} ${STRIP_H}`} width="100%" role="img"
               aria-label={`${item.label}: ${count(r.estimates.length)} sample means; middle 95% from ${dollars(low)} to ${dollars(high)}; mean of the sample means ${dollars(item.summary.meanEstimate)}`}>
+              {item.modified && (
+                <defs>
+                  <pattern id={stripeId} patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(45)">
+                    <rect width="9" height="9" fill={color} />
+                    <rect width="3.5" height="9" fill="#ffffff" opacity="0.55" />
+                  </pattern>
+                </defs>
+              )}
               <rect x={PAD} y="0" width={W - 2 * PAD} height={STRIP_H} fill="#f7f7f5" />
               {ticks.map((t) => (
                 <line key={t} x1={x(t)} x2={x(t)} y1="0" y2={STRIP_H} stroke={GRID} strokeWidth="1.5" />
               ))}
               {r.estimates.map((e, i) => (
-                <circle key={i} cx={x(e)} cy={spread(i)} r="4" fill={DOT} opacity={dotOpacity}>
+                <circle key={i} cx={x(e)} cy={spread(i)} r="4" fill={color} opacity={dotOpacity}>
                   <title>{`${name} #${i + 1}: mean ${dollars(e)}`}</title>
                 </circle>
               ))}
-              <line x1={x(low)} x2={x(high)} y1={MID} y2={MID} stroke={BAR} strokeWidth="7" strokeLinecap="butt">
+              <rect x={x(low)} y={MID - 4.5} width={Math.max(1, x(high) - x(low))} height="9"
+                fill={item.modified ? `url(#${stripeId})` : color}>
                 <title>{`Middle 95%: ${dollars(low)} to ${dollars(high)}`}</title>
-              </line>
-              <line x1={x(low)} x2={x(low)} y1={MID - 10} y2={MID + 10} stroke={BAR} strokeWidth="3" />
-              <line x1={x(high)} x2={x(high)} y1={MID - 10} y2={MID + 10} stroke={BAR} strokeWidth="3" />
+              </rect>
+              <line x1={x(low)} x2={x(low)} y1={MID - 10} y2={MID + 10} stroke={color} strokeWidth="3" />
+              <line x1={x(high)} x2={x(high)} y1={MID - 10} y2={MID + 10} stroke={color} strokeWidth="3" />
               <line x1={x(rowTruth(item))} x2={x(rowTruth(item))} y1="0" y2={STRIP_H} stroke={INK} strokeWidth="2.5">
                 <title>{`True mean of this row's population: ${dollars(rowTruth(item))}`}</title>
               </line>
               {/* Small labels for the two ends of the bold bar, written outward so they never overlap. */}
-              <text x={x(low) + 4} y="15" textAnchor="end" fill={BAR} fontSize="13" fontWeight="600"
+              <text x={x(low) + 4} y="15" textAnchor="end" fill={INK} fontSize="13" fontWeight="600"
                 stroke="#f7f7f5" strokeWidth="4" paintOrder="stroke">{axisLabel(low)}</text>
-              <text x={x(high) - 4} y="15" textAnchor="start" fill={BAR} fontSize="13" fontWeight="600"
+              <text x={x(high) - 4} y="15" textAnchor="start" fill={INK} fontSize="13" fontWeight="600"
                 stroke="#f7f7f5" strokeWidth="4" paintOrder="stroke">{axisLabel(high)}</text>
-              <circle cx={x(item.summary.meanEstimate)} cy={MID} r="9" fill={BAR} stroke="#fff" strokeWidth="2">
+              <circle cx={x(item.summary.meanEstimate)} cy={MID} r="9" fill={color} stroke="#fff" strokeWidth="2">
                 <title>{`Mean of the sample means: ${dollars(item.summary.meanEstimate)}`}</title>
               </circle>
             </svg>

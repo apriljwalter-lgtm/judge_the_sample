@@ -7,6 +7,9 @@ import {
 import { dollars, count, fixed } from "./format.js";
 import ExperimentPanel from "./ExperimentPanel.jsx";
 import useWholeNumberInput from "./useWholeNumberInput.js";
+import NumberSlider from "./NumberSlider.jsx";
+import { celebrate } from "./celebrate.js";
+import { METHOD_COLORS } from "./methodColors.jsx";
 
 // Stage 5: the student's challenge. A labelled MODIFIED copy of the population (simulated
 // children added, per the student's dated hypothesis revision) compared with the BASELINE,
@@ -19,42 +22,16 @@ const COLUMN = "age_band";
 const BAND_ORDER = [CHILD_BAND, "18-29", "30-39", "40-49", "50-64"];
 const REPETITION_CHOICES = [100, 1000];
 
-function NumberField({ label, input, help, unit }) {
-  return (
-    <div className="field">
-      <label>
-        {label}{" "}
-        <input
-          type="text"
-          inputMode="numeric"
-          value={input.text}
-          onChange={(e) => input.onChange(e.target.value.trim())}
-          aria-invalid={!input.isValid}
-        />
-        {unit}
-      </label>{" "}
-      {input.isValid ? (
-        <span>{help}</span>
-      ) : (
-        <span className="error">
-          Enter a whole number from {count(input.min)} to {count(input.max)}. Still using {count(input.value)}.
-        </span>
-      )}
-    </div>
-  );
-}
-
 export default function ChallengeTab({ population, truth, maxSeed }) {
   const N = population.length;
 
   // Modified-population settings (preset to the student's hypothesis values).
   const childrenIn = useWholeNumberInput(HYPOTHESIS.count, 0, MAX_ADDED);
-  const smokerIn = useWholeNumberInput(HYPOTHESIS.smokerPct, 0, 100);
   const copySeedIn = useWholeNumberInput(HYPOTHESIS.copySeed, 0, maxSeed);
   const resetToHypothesis = () => {
     childrenIn.reset(HYPOTHESIS.count);
-    smokerIn.reset(HYPOTHESIS.smokerPct);
     copySeedIn.reset(HYPOTHESIS.copySeed);
+    celebrate();
   };
 
   // Experiment settings (the same n for all four results).
@@ -71,9 +48,9 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
 
   const modified = useMemo(
     () => addSimulatedChildren(population, {
-      count: childrenIn.value, smokerShare: smokerIn.value / 100, seed: copySeedIn.value, target: TARGET,
+      count: childrenIn.value, smokerShare: HYPOTHESIS.smokerPct / 100, seed: copySeedIn.value, target: TARGET,
     }),
-    [population, childrenIn.value, smokerIn.value, copySeedIn.value]
+    [population, childrenIn.value, copySeedIn.value]
   );
   const modTruth = useMemo(() => trueMean(modified, TARGET), [modified]);
 
@@ -82,8 +59,6 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
     const sizes = (pop) => BAND_ORDER.map((g) => pop.filter((r) => r[COLUMN] === g).length);
     return {
       added: sim.length,
-      teens: sim.filter((r) => r.age >= 14).length,
-      smokers: sim.filter((r) => r.smoker === "yes").length,
       baseSizes: sizes(population),
       modSizes: sizes(modified),
       baseLevels: presentLevels(population, COLUMN, BAND_ORDER),
@@ -102,6 +77,7 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
       const result = repeatedResult({ method, population: pop, target: TARGET, n, reps, seed, column: COLUMN, levels });
       return {
         key, label, note, population: popLabel, truth: t, result,
+        color: METHOD_COLORS[method], modified: pop !== population,
         summary: summarizeEstimates(result.estimates, t), range: middleRange(result.estimates),
       };
     };
@@ -126,11 +102,9 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
       <section className="card">
         <h2 className="card-title">Modified population settings</h2>
         <div className="card-body controls">
-          <NumberField label="Simulated children added (aged 0-17)" input={childrenIn}
+          <NumberSlider label="Simulated children added (aged 0-17)" input={childrenIn} sliderMax={1000}
             help={`Preset to the hypothesis value: ${HYPOTHESIS.count}.`} />
-          <NumberField label="Smoker chance for each added 14-17-year-old" input={smokerIn} unit=" %"
-            help={`Preset: ${HYPOTHESIS.smokerPct}%. Ages 0-13 are never smokers.`} />
-          <NumberField label="Modified-copy seed" input={copySeedIn}
+          <NumberSlider label="Modified-copy seed" input={copySeedIn} slider={false}
             help="Makes the simulated rows repeatable: the same settings and seed always build the same copy." />
           <p>
             <button type="button" className="button" onClick={resetToHypothesis}>
@@ -141,7 +115,9 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
             How each simulated row is made: age 0-17 (equal chance), age group "0-17"; charges with an
             equal chance of any value from {dollars(range.lo)} to {dollars(range.hi)} (the lowest and
             highest charges in the original file); female/male 50/50; each of the 4 regions 25%;
-            children 0; bmi left blank; placed at random positions in the row order.{" "}
+            children 0; bmi left blank; ages 14-17 each have a {HYPOTHESIS.smokerPct}% chance of being
+            a smoker (ages 0-13 never; smoking is not used by either method or by the charges);
+            placed at random positions in the row order.{" "}
             <strong>These are simulated rows, not real patients or real charges.</strong> The original
             file (<code>{DATA_FILE}</code>) is unchanged; the modified copy exists only in this page.
           </p>
@@ -192,8 +168,7 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
             </table>
           </div>
           <p className="note">
-            Simulated rows added: {count(describe.added)}; of these, {count(describe.teens)} are aged
-            14-17 and {count(describe.smokers)} are smokers. Weight = group size ÷ all people in that
+            Simulated rows added: {count(describe.added)}. Weight = group size ÷ all people in that
             population. Each population's true mean is calculated from its own rows. These describe
             the two populations; they are not sampling results.
           </p>
@@ -203,19 +178,19 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
       <section className="card">
         <h2 className="card-title">Challenge experiment settings</h2>
         <div className="card-body controls">
-          <NumberField label="People per sample (n)" input={nIn}
+          <NumberSlider label="People per sample (n)" input={nIn}
             help="The same n for all four results." />
           <fieldset className="radios">
             <legend>Samples taken for each result (repetitions)</legend>
             {REPETITION_CHOICES.map((r) => (
               <label key={r}>
                 <input type="radio" name="challenge-repetitions" value={r} checked={reps === r}
-                  onChange={() => setReps(r)} />
+                  onChange={() => { setReps(r); celebrate(); }} />
                 {count(r)} samples
               </label>
             ))}
           </fieldset>
-          <NumberField label="Seed" input={seedIn}
+          <NumberSlider label="Seed" input={seedIn} slider={false}
             help="A starting number for the random picks. The same seed gives the same results." />
           <p className="note">
             Results update as soon as you change a setting and replace the old ones. 100 samples

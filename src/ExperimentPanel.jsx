@@ -44,6 +44,7 @@ export default function ExperimentPanel({ title, intro, results, truth, N }) {
               {results.map((x) => (
                 <tr key={x.key}>
                   <th scope="row">
+                    {x.color && <span className="method-swatch" style={{ background: x.color }} aria-hidden="true" />}
                     {x.label}
                     {x.note && <div className="note">{x.note}</div>}
                   </th>

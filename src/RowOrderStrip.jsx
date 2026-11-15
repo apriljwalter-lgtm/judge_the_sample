@@ -1,7 +1,8 @@
 import { count } from "./format.js";
+import { PICK_STRIP } from "./methodColors.jsx";
 
-// Colour for sampled-row marks: deep raspberry, checked to stay distinct from the four group colours.
-export const ROW_MARK = "#b8336a";
+// Sampled-row marks: deep money green on a bright gold bar (contrast 8.4:1), matching the theme.
+export const ROW_MARK = PICK_STRIP.mark;
 
 // Every row of the file, left to right in file order (row 1 to row N), with the sampled rows marked.
 export default function RowOrderStrip({ N, positions }) {
@@ -15,7 +16,7 @@ export default function RowOrderStrip({ N, positions }) {
       </div>
       <svg viewBox={`0 0 ${N} 40`} preserveAspectRatio="none" width="100%" height="40" role="img"
         aria-label={`File rows 1 to ${N}, left to right; ${positions.length} sampled rows marked`}>
-        <rect x="0" y="0" width={N} height="40" fill="#f0efec" />
+        <rect x="0" y="0" width={N} height="40" fill={PICK_STRIP.background} />
         {positions.map((p) => (
           <line key={p} x1={p - 0.5} x2={p - 0.5} y1="0" y2="40" stroke={ROW_MARK} strokeWidth="2"
             vectorEffect="non-scaling-stroke" />

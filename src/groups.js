@@ -7,9 +7,12 @@ export const GROUP_COLUMNS = [
   { key: "sex", label: "sex", levels: ["female", "male"] },
 ];
 
-// Four colours checked to stay distinguishable for colour-blind viewers
-// when all four appear together (blue, orange, aqua, dark violet).
-export const GROUP_COLOURS = ["#2a78d6", "#eb6834", "#1baf7a", "#4a3aa7"];
+// Navy, amber, rust brown and soft plum: chosen by the student to go with the green-and-gold
+// theme (no pink or teal). Checked with the dataviz palette validator: every pair stays
+// distinguishable, including for colour-blind viewers. Amber is a little pale on white, so picked
+// dots keep their dark outline and every chart has a legend. Two-group columns (smoker, sex)
+// use the first two: navy and amber.
+export const GROUP_COLOURS = ["#2b5797", "#d98a1c", "#9c4321", "#8c6bb1"];
 
 // Plain-language name for a group column, e.g. "age group" for age_band.
 export const groupLabel = (column) => GROUP_COLUMNS.find((c) => c.key === column).label;

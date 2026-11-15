@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { population, TARGET, DATA_FILE } from "./data.js";
 import {
   makeRng, trueMean, srs, systematic, stratified, sampleMean, groupShares,
@@ -13,8 +13,24 @@ import ExperimentPanel from "./ExperimentPanel.jsx";
 import ExperimentSettings from "./ExperimentSettings.jsx";
 import ChallengeTab from "./ChallengeTab.jsx";
 import useWholeNumberInput from "./useWholeNumberInput.js";
+import NumberSlider from "./NumberSlider.jsx";
+import Intro from "./Intro.jsx";
+import CashRain from "./CashRain.jsx";
+import SoundToggle from "./SoundToggle.jsx";
+import { celebrate, prefersReducedMotion, preloadSounds } from "./celebrate.js";
+import { METHOD_COLORS } from "./methodColors.jsx";
 
 const TABS = ["single", "experiments", "challenge"];
+const INTRO_KEY = "judge-the-sample-intro-seen";
+
+// The opening scene plays once per browser tab (not on refresh), and never with "reduce motion".
+function introAlreadySeen() {
+  try {
+    return sessionStorage.getItem(INTRO_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 const N = population.length;
 const DEFAULT_N = 100;
@@ -41,6 +57,16 @@ export default function App() {
   const n = nInput.value;
   const seed = seedInput.value;
   const [groupColumn, setGroupColumn] = useState("smoker");
+  const [showIntro, setShowIntro] = useState(() => !introAlreadySeen() && !prefersReducedMotion());
+  useEffect(() => preloadSounds(), []); // load the recorded money sounds in the background
+  const finishIntro = useCallback(() => {
+    try {
+      sessionStorage.setItem(INTRO_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setShowIntro(false);
+  }, []);
   // The open tab is kept in the address (#single, #experiments or #challenge), so a refresh reopens it.
   const [tab, setTab] = useState(() => {
     const fromHash = window.location.hash.slice(1);
@@ -94,10 +120,11 @@ export default function App() {
   const popShares = useMemo(() => groupShares(population, [], groupColumn, levels), [groupColumn, levels]);
   const sampleShares = useMemo(
     () => [
-      { name: `Simple random (n = ${count(n)})`, shares: groupShares(population, srsResult.rows, groupColumn, levels) },
-      { name: `Systematic (n = ${count(n)})`, shares: groupShares(population, sysResult.rows, groupColumn, levels) },
+      { name: `Simple random (n = ${count(n)})`, method: "srs", shares: groupShares(population, srsResult.rows, groupColumn, levels) },
+      { name: `Systematic (n = ${count(n)})`, method: "systematic", shares: groupShares(population, sysResult.rows, groupColumn, levels) },
       {
         name: `Stratified (n = ${count(n)})`,
+        method: "stratified",
         shares: strResult ? groupShares(population, strResult.rows, groupColumn, levels) : null,
       },
     ],
@@ -120,9 +147,9 @@ export default function App() {
     // Experiment A: three methods, same n = 100. Each method uses its own generator from the same seed.
     const srs100 = withSummary(run("srs", EXPERIMENT_N));
     const a = [
-      { key: "srs", label: "Simple random", ...srs100 },
-      { key: "sys", label: "Systematic", ...withSummary(run("systematic", EXPERIMENT_N)) },
-      { key: "str", label: "Stratified by age group", ...withSummary(run("stratified", EXPERIMENT_N)) },
+      { key: "srs", label: "Simple random", color: METHOD_COLORS.srs, ...srs100 },
+      { key: "sys", label: "Systematic", color: METHOD_COLORS.systematic, ...withSummary(run("systematic", EXPERIMENT_N)) },
+      { key: "str", label: "Stratified by age group", color: METHOD_COLORS.stratified, ...withSummary(run("stratified", EXPERIMENT_N)) },
     ];
     a[0].note = "picked completely at random";
     a[1].note = "every so many rows down the file (" + a[1].result.design + ")";
@@ -132,8 +159,8 @@ export default function App() {
     // (same population, method, seed and repetitions).
     const b = SIZES_B.map((size) =>
       size === EXPERIMENT_N
-        ? { key: `srs-${size}`, label: `Simple random, ${people(size)}`, ...srs100, note: "same result as Experiment A" }
-        : { key: `srs-${size}`, label: `Simple random, ${people(size)}`, ...withSummary(run("srs", size)) }
+        ? { key: `srs-${size}`, label: `Simple random, ${people(size)}`, color: METHOD_COLORS.srs, ...srs100, note: "same result as Experiment A" }
+        : { key: `srs-${size}`, label: `Simple random, ${people(size)}`, color: METHOD_COLORS.srs, ...withSummary(run("srs", size)) }
     );
 
     return { a, b };
@@ -143,14 +170,29 @@ export default function App() {
   const showRows = (positions) => positions.slice(0, 8).join(", ") + (positions.length > 8 ? ", …" : "");
 
   return (
+    <>
+    {showIntro && <Intro onDone={finishIntro} />}
+    <CashRain />
+    <SoundToggle />
     <main>
-      <h1>Judge the Sample: healthcare costs</h1>
-
-      <p>
-        This app uses one file of {count(N)} people (<code>{DATA_FILE}</code>), one simulated
-        insurance record each. We want the mean of their medical charges (<code>{TARGET}</code>),
-        in US dollars. It is a teaching dataset, not all patients or all claims.
-      </p>
+      <header className="banknote">
+        <span className="bn-corner tl" aria-hidden="true">$</span>
+        <span className="bn-corner tr" aria-hidden="true">$</span>
+        <span className="bn-corner bl" aria-hidden="true">$</span>
+        <span className="bn-corner br" aria-hidden="true">$</span>
+        <div className="bn-inner">
+          <div className="bn-eyebrow">Follow the money</div>
+          <h1>Judge the Sample: healthcare costs</h1>
+          <p>
+            This app uses one file of {count(N)} people (<code>{DATA_FILE}</code>), one simulated
+            insurance record each. We want the mean of their medical charges (<code>{TARGET}</code>),
+            in US dollars. It is a teaching dataset, not all patients or all claims.
+          </p>
+          <button type="button" className="link-button" onClick={() => setShowIntro(true)}>
+            Replay intro
+          </button>
+        </div>
+      </header>
 
       <div className="tabs" role="tablist" aria-label="Page sections">
         {[
@@ -177,45 +219,10 @@ export default function App() {
       <h2 className="card-title">Settings</h2>
       <div className="card-body">
         <div className="controls">
-          <div className="field">
-            <label>
-              People per sample (n){" "}
-              <input
-                type="text"
-                inputMode="numeric"
-                value={nInput.text}
-                onChange={(e) => nInput.onChange(e.target.value.trim())}
-                aria-invalid={!nInput.isValid}
-              />
-            </label>{" "}
-            {nInput.isValid ? (
-              <span>Used for all three methods.</span>
-            ) : (
-              <span className="error">
-                Enter a whole number from 1 to {count(N)}. Still showing n = {count(n)}.
-              </span>
-            )}
-          </div>
-          <div className="field">
-            <label>
-              Seed{" "}
-              <input
-                type="text"
-                inputMode="numeric"
-                value={seedInput.text}
-                onChange={(e) => seedInput.onChange(e.target.value.trim())}
-                aria-invalid={!seedInput.isValid}
-              />
-            </label>{" "}
-            {seedInput.isValid ? (
-              <span>A starting number for the random picks. The same seed and n always pick the same people.</span>
-            ) : (
-              <span className="error">
-                Enter a whole number from 0 to {MAX_SEED}. Still showing seed {seed}.
-              </span>
-            )}
-          </div>
-          <GroupControls value={groupColumn} onChange={setGroupColumn} />
+          <NumberSlider label="People per sample (n)" input={nInput} help="Used for all three methods." />
+          <NumberSlider label="Seed" input={seedInput} slider={false}
+            help="A starting number for the random picks. The same seed and n always pick the same people." />
+          <GroupControls value={groupColumn} onChange={(v) => { setGroupColumn(v); celebrate(); }} />
         </div>
       </div>
       </section>
@@ -388,7 +395,7 @@ export default function App() {
         Everything uses the original {count(N)} people, unchanged.
       </p>
 
-      <ExperimentSettings seedInput={expSeedInput} seed={expSeed} maxSeed={MAX_SEED} reps={reps} onRepsChange={setReps} />
+      <ExperimentSettings seedInput={expSeedInput} seed={expSeed} maxSeed={MAX_SEED} reps={reps} onRepsChange={(r) => { setReps(r); celebrate(); }} />
 
       <ExperimentPanel
         title={`Experiment A: three ways of picking ${EXPERIMENT_N} people`}
@@ -428,5 +435,6 @@ export default function App() {
 
       {tab === "challenge" && <ChallengeTab population={population} truth={truth} maxSeed={MAX_SEED} />}
     </main>
+    </>
   );
 }
