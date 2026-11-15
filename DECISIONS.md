@@ -111,10 +111,10 @@ Stage 5- AI was asked to build the challenge tab from the hypothesis
 
 - Automated checks my agent reported (I did not let it interpret my results):
 
-Stage 2- the data file was unchanged, and the true mean matches the calculated value and doesn't change if rows are reordred
+Stage 2- the data file was unchanged, and the true mean matches the calculated value and doesn't change if rows are reordered
 
-Stage 3- the startified estimate is the population-weighted mean
-all three methos reproduce identical smaples with the same seed
+Stage 3- the stratified estimate is the population-weighted mean
+all three methods reproduce identical samples with the same seed
 
 Stage 4
 systematic uses exact enumeration only for a whole number interval
