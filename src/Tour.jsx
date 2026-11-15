@@ -14,14 +14,17 @@ export const TOURS = {
   ],
   experiments: [
     { target: "exp-settings", title: "Experiment settings", text: "Choose how many samples the computer takes for each result (100 or 1,000) and the seed." },
-    { target: "range-chart", title: "Many samples at once", text: "Each row is one way of sampling. Each faint dot is the mean from one sample, the bold bar covers the middle 95% of them, the large dot is their mean, and the black line is the true mean." },
+    { target: "pile-up", title: "Watch them pile up", text: "Press this to watch the samples drop in one at a time, with bias, SD and RMSE so far counting on each register, then the results receipts print." },
+    { target: "range-chart", title: "Many samples at once", text: "Each row is one way of sampling. Each faint dot is the mean from one sample, the bold bar covers the middle 95% of them, the large dot is their mean, and the black line is the true mean. The receipt beside each row lists that row's results." },
     { target: "summary-table", title: "The numbers behind each row", text: "Bias, SD and RMSE for each row. Tap a gold coin for what each one means." },
     { target: "experiment-b", title: "Experiment B", text: "The same method each time; only the number of people per sample changes." },
   ],
   challenge: [
     { target: "mod-settings", title: "Build the modified population", text: "Add simulated children aged 0-17 (not real people) to a copy of the file. The seed makes the copy repeatable; Reset returns to the hypothesis values." },
     { target: "populations", title: "Baseline and modified", text: "Group sizes, weights and each population's own true mean." },
+    { target: "pictograph", title: "Who is in each population", text: "Each little figure is 10 people, one row per age group. Press Add the children to watch the simulated children (smaller figures) join, and each group's share of everyone change." },
     { target: "ch-settings", title: "Same settings for all four", text: "The same n, number of samples and seed are used for every result." },
+    { target: "pile-up", title: "Watch them pile up", text: "Press this to watch the samples for all four results drop in one at a time, then the results receipts print." },
     { target: "ch-results", title: "Four results", text: "Each method on each population. Every row is compared with its own population's true mean; striped bars are the modified population." },
   ],
 };

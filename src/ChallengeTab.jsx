@@ -8,6 +8,7 @@ import { dollars, count, fixed } from "./format.js";
 import ExperimentPanel from "./ExperimentPanel.jsx";
 import useWholeNumberInput from "./useWholeNumberInput.js";
 import NumberSlider from "./NumberSlider.jsx";
+import PopulationPictograph from "./PopulationPictograph.jsx";
 import Term from "./Term.jsx";
 import { celebrate } from "./celebrate.js";
 import { METHOD_COLORS } from "./methodColors.jsx";
@@ -39,6 +40,13 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
   const nIn = useWholeNumberInput(100, 1, N);
   const seedIn = useWholeNumberInput(12345, 0, maxSeed);
   const [reps, setReps] = useState(100);
+  // Back to the settings used for the recorded challenge results.
+  const resetExperiment = () => {
+    nIn.reset(100);
+    seedIn.reset(12345);
+    setReps(100);
+    celebrate();
+  };
   const n = nIn.value;
   const seed = seedIn.value;
 
@@ -127,7 +135,8 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
 
       <section className="card" data-tour="populations">
         <h2 className="card-title">Baseline and modified populations</h2>
-        <div className="card-body">
+        <div className="card-body populations-layout">
+          <div className="populations-table">
           <div className="table-wrap">
             <table className="shares">
               <thead>
@@ -173,6 +182,10 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
             population. Each population's true mean is calculated from its own rows. These describe
             the two populations; they are not sampling results.
           </p>
+          </div>
+          <div data-tour="pictograph">
+            <PopulationPictograph bands={BAND_ORDER} baseSizes={describe.baseSizes} modSizes={describe.modSizes} N={N} />
+          </div>
         </div>
       </section>
 
@@ -193,6 +206,11 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
           </fieldset>
           <NumberSlider label="Seed" term="seed" input={seedIn} slider={false}
             help="A starting number for the random picks. The same seed gives the same results." />
+          <p>
+            <button type="button" className="button" onClick={resetExperiment}>
+              Reset (n = 100, 100 samples, seed 12345)
+            </button>
+          </p>
           <p className="note">
             Results update as soon as you change a setting and replace the old ones. 100 samples
             usually show the main pattern; 1,000 give smoother charts and steadier numbers. Neither is

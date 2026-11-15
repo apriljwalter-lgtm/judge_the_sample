@@ -1,5 +1,7 @@
 import { useId } from "react";
 import { dollars, count } from "./format.js";
+import { summarizeEstimates } from "./sampling.js";
+import ResultReceipt from "./ResultReceipt.jsx";
 
 // Range bars with faint sample dots: one row per result, all rows on the same dollar axis.
 // Each faint dot is one sample's mean (or one systematic start, for exact results); the bold bar
@@ -8,7 +10,7 @@ import { dollars, count } from "./format.js";
 
 const W = 1000; // drawing width in SVG units; every strip uses the same x scale
 const PAD = 60; // room at both sides so the first and last axis labels and bar-end labels fit
-const STRIP_H = 72;
+const STRIP_H = 150; // tall enough to sit level with the results receipt beside each row
 const DOT_TOP = 22; // space above the dots for the small bar-end labels
 const MID = (DOT_TOP + STRIP_H - 6) / 2;
 
@@ -44,7 +46,10 @@ export const typeText = (r) => (r.type === "exact" ? "Exact (every start listed)
 export const samplesText = (r) =>
   r.type === "exact" ? `all ${count(r.count)} possible starts` : `${count(r.count)} samples`;
 
-export default function RangeChart({ results, truth }) {
+// `revealed`: null = show everything; a fraction 0-1 = "Watch them pile up" in progress (only that
+// share of each row's samples is drawn, and the summary bar / large dot wait until the end).
+// `withReceipts`: put a results receipt beside each row.
+export default function RangeChart({ results, truth, revealed = null, withReceipts = false }) {
   // A row may carry its own `truth` (the true mean of the population it was drawn from, e.g.
   // baseline vs modified). Then each row's black line sits at its own population's true mean.
   const perRow = results.some((item) => item.truth !== undefined);
@@ -57,6 +62,22 @@ export default function RangeChart({ results, truth }) {
   const anyModified = results.some((item) => item.modified);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const LEGEND = "#6b6a65"; // legend glyphs are neutral: they explain shapes, not methods
+
+  // Dollar axis drawn under every row (the same scale for all rows, so rows can be compared).
+  const axis = (
+    <svg viewBox={`0 0 ${W} 46`} width="100%" aria-hidden="true" className="range-axis">
+      <line x1={PAD} x2={W - PAD} y1="2" y2="2" stroke={AXIS} />
+      {ticks.map((t) => (
+        <g key={t}>
+          <line x1={x(t)} x2={x(t)} y1="2" y2="8" stroke={AXIS} />
+          <text x={x(t)} y="23" textAnchor="middle" fill={INK_2} fontSize="14">{axisLabel(t)}</text>
+        </g>
+      ))}
+      <text x={W / 2} y="42" textAnchor="middle" fill={INK_2} fontSize="12.5">
+        Sample mean from one sample (US dollars)
+      </text>
+    </svg>
+  );
 
   return (
     <figure className="range-chart">
@@ -95,9 +116,12 @@ export default function RangeChart({ results, truth }) {
       </ul>
 
       {!perRow && (
-        <svg viewBox={`0 0 ${W} 22`} width="100%" aria-hidden="true" className="range-top">
-          <text x={tx} y="16" textAnchor="middle" fill={INK} fontSize="15" fontWeight="600">True mean</text>
-        </svg>
+        <div className={withReceipts ? "range-grid" : undefined}>
+          <svg viewBox={`0 0 ${W} 22`} width="100%" aria-hidden="true" className="range-top">
+            <text x={tx} y="16" textAnchor="middle" fill={INK} fontSize="15" fontWeight="600">True mean</text>
+          </svg>
+          {withReceipts && <div />}
+        </div>
       )}
 
       {results.map((item) => {
@@ -106,8 +130,13 @@ export default function RangeChart({ results, truth }) {
         const name = r.type === "exact" ? "Start" : "Sample";
         const color = item.color ?? BAR;
         const stripeId = `${uid}-stripe-${item.key}`;
+        const piling = revealed !== null;
+        const total = r.estimates.length;
+        const shownN = piling ? Math.min(total, Math.floor(revealed * total)) : total;
+        const shown = piling ? r.estimates.slice(0, shownN) : r.estimates;
         return (
-          <div key={item.key} className="range-row">
+          <div key={item.key} className={withReceipts ? "range-row range-grid" : "range-row"}>
+            <div className="range-row-main">
             <div className="range-row-label">
               <span className="method-swatch" style={{ background: color }} aria-hidden="true" />
               <strong>{item.label}</strong>{" "}
@@ -131,45 +160,50 @@ export default function RangeChart({ results, truth }) {
               {ticks.map((t) => (
                 <line key={t} x1={x(t)} x2={x(t)} y1="0" y2={STRIP_H} stroke={GRID} strokeWidth="1.5" />
               ))}
-              {r.estimates.map((e, i) => (
-                <circle key={i} cx={x(e)} cy={spread(i)} r="4" fill={color} opacity={dotOpacity}>
+              {shown.map((e, i) => (
+                <circle key={i} cx={x(e)} cy={spread(i)} r="4.5" fill={color} opacity={dotOpacity}>
                   <title>{`${name} #${i + 1}: mean ${dollars(e)}`}</title>
                 </circle>
               ))}
-              <rect x={x(low)} y={MID - 4.5} width={Math.max(1, x(high) - x(low))} height="9"
-                fill={item.modified ? `url(#${stripeId})` : color}>
-                <title>{`Middle 95%: ${dollars(low)} to ${dollars(high)}`}</title>
-              </rect>
-              <line x1={x(low)} x2={x(low)} y1={MID - 10} y2={MID + 10} stroke={color} strokeWidth="3" />
-              <line x1={x(high)} x2={x(high)} y1={MID - 10} y2={MID + 10} stroke={color} strokeWidth="3" />
+              {!piling && (
+                <>
+                  <rect x={x(low)} y={MID - 7} width={Math.max(1, x(high) - x(low))} height="14"
+                    fill={item.modified ? `url(#${stripeId})` : color}>
+                    <title>{`Middle 95%: ${dollars(low)} to ${dollars(high)}`}</title>
+                  </rect>
+                  <line x1={x(low)} x2={x(low)} y1={MID - 18} y2={MID + 18} stroke={color} strokeWidth="3.5" />
+                  <line x1={x(high)} x2={x(high)} y1={MID - 18} y2={MID + 18} stroke={color} strokeWidth="3.5" />
+                </>
+              )}
               <line x1={x(rowTruth(item))} x2={x(rowTruth(item))} y1="0" y2={STRIP_H} stroke={INK} strokeWidth="2.5">
                 <title>{`True mean of this row's population: ${dollars(rowTruth(item))}`}</title>
               </line>
-              {/* Small labels for the two ends of the bold bar, written outward so they never overlap. */}
-              <text x={x(low) + 4} y="15" textAnchor="end" fill={INK} fontSize="13" fontWeight="600"
-                stroke="#f7f7f5" strokeWidth="4" paintOrder="stroke">{axisLabel(low)}</text>
-              <text x={x(high) - 4} y="15" textAnchor="start" fill={INK} fontSize="13" fontWeight="600"
-                stroke="#f7f7f5" strokeWidth="4" paintOrder="stroke">{axisLabel(high)}</text>
-              <circle cx={x(item.summary.meanEstimate)} cy={MID} r="9" fill={color} stroke="#fff" strokeWidth="2">
-                <title>{`Mean of the sample means: ${dollars(item.summary.meanEstimate)}`}</title>
-              </circle>
+              {!piling && (
+                <>
+                  {/* Small labels for the two ends of the bold bar, written outward so they never overlap. */}
+                  <text x={x(low) + 4} y="15" textAnchor="end" fill={INK} fontSize="13" fontWeight="600"
+                    stroke="#f7f7f5" strokeWidth="4" paintOrder="stroke">{axisLabel(low)}</text>
+                  <text x={x(high) - 4} y="15" textAnchor="start" fill={INK} fontSize="13" fontWeight="600"
+                    stroke="#f7f7f5" strokeWidth="4" paintOrder="stroke">{axisLabel(high)}</text>
+                  <circle cx={x(item.summary.meanEstimate)} cy={MID} r="11" fill={color} stroke="#fff" strokeWidth="2.5">
+                    <title>{`Mean of the sample means: ${dollars(item.summary.meanEstimate)}`}</title>
+                  </circle>
+                </>
+              )}
             </svg>
+            {axis}
+            </div>
+            {withReceipts && (
+              <ResultReceipt
+                item={item}
+                truth={rowTruth(item)}
+                live={piling ? { shown: shownN, total, summary: shownN >= 2 ? summarizeEstimates(shown, rowTruth(item)) : null } : null}
+              />
+            )}
           </div>
         );
       })}
 
-      <svg viewBox={`0 0 ${W} 52`} width="100%" aria-hidden="true" className="range-axis">
-        <line x1={PAD} x2={W - PAD} y1="2" y2="2" stroke={AXIS} />
-        {ticks.map((t) => (
-          <g key={t}>
-            <line x1={x(t)} x2={x(t)} y1="2" y2="8" stroke={AXIS} />
-            <text x={x(t)} y="24" textAnchor="middle" fill={INK_2} fontSize="14">{axisLabel(t)}</text>
-          </g>
-        ))}
-        <text x={W / 2} y="46" textAnchor="middle" fill={INK_2} fontSize="14">
-          Sample mean from one sample (US dollars)
-        </text>
-      </svg>
     </figure>
   );
 }

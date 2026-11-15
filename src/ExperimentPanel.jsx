@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import RangeChart, { typeText, samplesText } from "./RangeChart.jsx";
+import { playSound, prefersReducedMotion } from "./celebrate.js";
 import { dollars, count } from "./format.js";
 import Term from "./Term.jsx";
 
@@ -7,15 +9,60 @@ import Term from "./Term.jsx";
 // repeatedResult(), `summary` from summarizeEstimates() and `range` from middleRange() in sampling.js.
 // A result may carry its own `truth` and `population` label (Stage 5: baseline vs modified);
 // then its bias, SD and RMSE were computed against that row's own true mean.
+const PILE_MS = 5000; // how long "Watch them pile up" takes
+
 export default function ExperimentPanel({ title, intro, results, truth, N, tourId }) {
   const perRow = results.some((x) => x.truth !== undefined);
+
+  // "Watch them pile up" (display only): reveal each row's samples over PILE_MS, then show the
+  // full results and print the receipts. Any change to the results cancels it.
+  const [revealed, setRevealed] = useState(null);
+  const frame = useRef(null);
+  useEffect(() => {
+    cancelAnimationFrame(frame.current);
+    setRevealed(null);
+  }, [results]);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  const pileUp = () => {
+    if (revealed !== null) return;
+    if (prefersReducedMotion()) {
+      playSound("printer");
+      return;
+    }
+    const start = performance.now();
+    let lastClink = 0;
+    const step = (now) => {
+      const f = Math.min(1, (now - start) / PILE_MS);
+      if (now - lastClink > 180 && f < 1) {
+        lastClink = now;
+        playSound("coin");
+      }
+      if (f < 1) {
+        setRevealed(f);
+        frame.current = requestAnimationFrame(step);
+      } else {
+        setRevealed(null); // done: bars, large dots and printed receipts with the final results
+        playSound("printer");
+        setTimeout(() => playSound("cha-ching"), 350);
+      }
+    };
+    setRevealed(0);
+    frame.current = requestAnimationFrame(step);
+  };
   return (
     <section className="card" data-tour={tourId}>
       <h2 className="card-title">{title}</h2>
       <div className="card-body">
         {intro}
+        <p>
+          <button type="button" className="button watch-draw" onClick={pileUp} disabled={revealed !== null}
+            data-tour="pile-up">
+            {revealed !== null ? "Taking samples…" : "▶ Watch them pile up"}
+          </button>
+        </p>
         <div data-tour="range-chart">
-          <RangeChart results={results} truth={truth} />
+          <RangeChart results={results} truth={truth} revealed={revealed} withReceipts />
         </div>
         <p className="note">
           <strong>How to read this chart:</strong> each faint dot is the mean cost from one sample.
