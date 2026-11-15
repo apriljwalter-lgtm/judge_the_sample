@@ -8,6 +8,7 @@ import { dollars, count, fixed } from "./format.js";
 import ExperimentPanel from "./ExperimentPanel.jsx";
 import useWholeNumberInput from "./useWholeNumberInput.js";
 import NumberSlider from "./NumberSlider.jsx";
+import Term from "./Term.jsx";
 import { celebrate } from "./celebrate.js";
 import { METHOD_COLORS } from "./methodColors.jsx";
 
@@ -99,12 +100,12 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
         <strong>baseline</strong> and the <strong>modified</strong> population, all at the same n.
       </p>
 
-      <section className="card">
-        <h2 className="card-title">Modified population settings</h2>
+      <section className="card" data-tour="mod-settings">
+        <h2 className="card-title"><Term id="modified">Modified population settings</Term></h2>
         <div className="card-body controls">
           <NumberSlider label="Simulated children added (aged 0-17)" input={childrenIn} sliderMax={1000}
             help={`Preset to the hypothesis value: ${HYPOTHESIS.count}.`} />
-          <NumberSlider label="Modified-copy seed" input={copySeedIn} slider={false}
+          <NumberSlider label="Modified-copy seed" term="seed" input={copySeedIn} slider={false}
             help="Makes the simulated rows repeatable: the same settings and seed always build the same copy." />
           <p>
             <button type="button" className="button" onClick={resetToHypothesis}>
@@ -124,7 +125,7 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
         </div>
       </section>
 
-      <section className="card">
+      <section className="card" data-tour="populations">
         <h2 className="card-title">Baseline and modified populations</h2>
         <div className="card-body">
           <div className="table-wrap">
@@ -175,10 +176,10 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
         </div>
       </section>
 
-      <section className="card">
+      <section className="card" data-tour="ch-settings">
         <h2 className="card-title">Challenge experiment settings</h2>
         <div className="card-body controls">
-          <NumberSlider label="People per sample (n)" input={nIn}
+          <NumberSlider label="People per sample (n)" term="n" input={nIn}
             help="The same n for all four results." />
           <fieldset className="radios">
             <legend>Samples taken for each result (repetitions)</legend>
@@ -190,7 +191,7 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
               </label>
             ))}
           </fieldset>
-          <NumberSlider label="Seed" input={seedIn} slider={false}
+          <NumberSlider label="Seed" term="seed" input={seedIn} slider={false}
             help="A starting number for the random picks. The same seed gives the same results." />
           <p className="note">
             Results update as soon as you change a setting and replace the old ones. 100 samples
@@ -213,6 +214,7 @@ export default function ChallengeTab({ population, truth, maxSeed }) {
         </section>
       ) : (
         <ExperimentPanel
+          tourId="ch-results"
           title={`Challenge results: four results at ${count(n)} people per sample`}
           results={results}
           truth={truth}

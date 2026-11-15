@@ -17,11 +17,13 @@ import NumberSlider from "./NumberSlider.jsx";
 import Intro from "./Intro.jsx";
 import CashRain from "./CashRain.jsx";
 import SoundToggle from "./SoundToggle.jsx";
+import Tour, { TOURS } from "./Tour.jsx";
 import { celebrate, prefersReducedMotion, preloadSounds } from "./celebrate.js";
 import { METHOD_COLORS } from "./methodColors.jsx";
 
 const TABS = ["single", "experiments", "challenge"];
 const INTRO_KEY = "judge-the-sample-intro-seen";
+const TOUR_OFFER_KEY = "judge-the-sample-tour-offered";
 
 // The opening scene plays once per browser tab (not on refresh), and never with "reduce motion".
 function introAlreadySeen() {
@@ -66,7 +68,22 @@ export default function App() {
       /* ignore */
     }
     setShowIntro(false);
+    // After the envelope on a first visit, offer the guided tour once per browser tab.
+    try {
+      if (sessionStorage.getItem(TOUR_OFFER_KEY) !== "1") {
+        sessionStorage.setItem(TOUR_OFFER_KEY, "1");
+        setTourOffer(true);
+      }
+    } catch {
+      setTourOffer(true);
+    }
   }, []);
+  const [tourOffer, setTourOffer] = useState(false);
+  const [touring, setTouring] = useState(false);
+  const startTour = () => {
+    setTourOffer(false);
+    setTouring(true);
+  };
   // The open tab is kept in the address (#single, #experiments or #challenge), so a refresh reopens it.
   const [tab, setTab] = useState(() => {
     const fromHash = window.location.hash.slice(1);
@@ -167,6 +184,24 @@ export default function App() {
   }, [reps, expSeed, truth]);
 
   const common = { population, target: TARGET, groupColumn, truth, n, seed };
+
+  // Display-only order for "Watch the draw". The samples themselves come from sampling.js; this only
+  // decides the order in which the already-picked people light up.
+  const drawOrders = useMemo(() => {
+    const shuffle = (ids, r) => {
+      const a = [...ids];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(r() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+    return {
+      srs: shuffle(srsResult.rows.map((r) => r.row_id), makeRng((seed + 7919) % 4294967296)),
+      sys: sysResult.rows.map((r) => r.row_id),
+      str: strResult ? strResult.strata.flatMap((st) => st.rows.map((r) => r.row_id)) : [],
+    };
+  }, [srsResult, sysResult, strResult, seed]);
   const showRows = (positions) => positions.slice(0, 8).join(", ") + (positions.length > 8 ? ", …" : "");
 
   return (
@@ -174,6 +209,14 @@ export default function App() {
     {showIntro && <Intro onDone={finishIntro} />}
     <CashRain />
     <SoundToggle />
+    {touring && <Tour key={tab} steps={TOURS[tab]} onClose={() => setTouring(false)} />}
+    {tourOffer && !showIntro && !touring && (
+      <div className="tour-offer" role="dialog" aria-label="Take the tour?">
+        <p><strong>New here?</strong> Take a quick tour of this page.</p>
+        <button type="button" className="button tour-next" onClick={startTour} autoFocus>Yes, show me</button>{" "}
+        <button type="button" className="button" onClick={() => setTourOffer(false)}>No thanks</button>
+      </div>
+    )}
     <main>
       <header className="banknote">
         <span className="bn-corner tl" aria-hidden="true">$</span>
@@ -188,9 +231,12 @@ export default function App() {
             insurance record each. We want the mean of their medical charges (<code>{TARGET}</code>),
             in US dollars. It is a teaching dataset, not all patients or all claims.
           </p>
-          <button type="button" className="link-button" onClick={() => setShowIntro(true)}>
-            Replay intro
-          </button>
+          <div className="bn-links">
+            <button type="button" className="button bn-tour" onClick={startTour}>Show me around</button>
+            <button type="button" className="link-button" onClick={() => setShowIntro(true)}>
+              Replay intro
+            </button>
+          </div>
         </div>
       </header>
 
@@ -215,12 +261,12 @@ export default function App() {
 
       {tab === "single" && (
       <>
-      <section className="card">
+      <section className="card" data-tour="settings">
       <h2 className="card-title">Settings</h2>
       <div className="card-body">
         <div className="controls">
-          <NumberSlider label="People per sample (n)" input={nInput} help="Used for all three methods." />
-          <NumberSlider label="Seed" input={seedInput} slider={false}
+          <NumberSlider label="People per sample (n)" term="n" input={nInput} help="Used for all three methods." />
+          <NumberSlider label="Seed" term="seed" input={seedInput} slider={false}
             help="A starting number for the random picks. The same seed and n always pick the same people." />
           <GroupControls value={groupColumn} onChange={(v) => { setGroupColumn(v); celebrate(); }} />
         </div>
@@ -276,16 +322,20 @@ export default function App() {
         </div>
       </section>
 
-      <MethodPanel {...common} title="Simple random sampling" rows={srsResult.rows}
-        estimate={srsResult.estimate} estimateName="Sample mean">
+      <MethodPanel {...common} title="Simple random sampling" titleTerm="srs" rows={srsResult.rows}
+        estimate={srsResult.estimate} estimateName="Sample mean" estimateTerm="sampleMean"
+        receipt={{ method: "Simple random", methodTerm: "srs" }}
+        drawOrder={drawOrders.srs} drawNote="People appear in random order.">
         <p>
           We picked {people(n)} completely at random from all {count(N)}, with no one picked twice.
           The figure is the plain mean of their charges.
         </p>
       </MethodPanel>
 
-      <MethodPanel {...common} title="Systematic sampling with a random start" rows={sysResult.rows}
-        estimate={sysResult.estimate} estimateName="Sample mean">
+      <MethodPanel {...common} title="Systematic sampling with a random start" titleTerm="systematic" rows={sysResult.rows}
+        estimate={sysResult.estimate} estimateName="Sample mean" estimateTerm="sampleMean"
+        receipt={{ method: "Systematic", methodTerm: "systematic", extra: ["Design", sysResult.design] }}
+        drawOrder={drawOrders.sys} drawNote="Going down the file in row order from a random start.">
         <p>
           We went down the file from a random starting spot and took one person{" "}
           {sysResult.design === "whole-number interval"
@@ -317,8 +367,10 @@ export default function App() {
         </details>
       </MethodPanel>
 
-      <MethodPanel {...common} title="Stratified sampling by age group" rows={strResult?.rows}
-        estimate={strResult?.estimate} estimateName="Weighted estimate"
+      <MethodPanel {...common} title="Stratified sampling by age group" titleTerm="stratified" rows={strResult?.rows}
+        estimate={strResult?.estimate} estimateName="Weighted estimate" estimateTerm="weighted"
+        receipt={{ method: "Stratified", methodTerm: "stratified", extra: ["Allocation", "proportional"] }}
+        drawOrder={drawOrders.str} drawNote="One age group at a time."
         message={
           strResult
             ? null
@@ -383,7 +435,9 @@ export default function App() {
         )}
       </MethodPanel>
 
-      <SharesTable column={groupColumn} population={popShares} samples={sampleShares} N={N} />
+      <div data-tour="shares">
+        <SharesTable column={groupColumn} population={popShares} samples={sampleShares} N={N} />
+      </div>
       </>
       )}
 
@@ -395,7 +449,9 @@ export default function App() {
         Everything uses the original {count(N)} people, unchanged.
       </p>
 
+      <div data-tour="exp-settings">
       <ExperimentSettings seedInput={expSeedInput} seed={expSeed} maxSeed={MAX_SEED} reps={reps} onRepsChange={(r) => { setReps(r); celebrate(); }} />
+      </div>
 
       <ExperimentPanel
         title={`Experiment A: three ways of picking ${EXPERIMENT_N} people`}
@@ -418,6 +474,7 @@ export default function App() {
       />
 
       <ExperimentPanel
+        tourId="experiment-b"
         title="Experiment B: does a bigger sample help? (simple random, 1, 10 or 100 people)"
         results={experiments.b}
         truth={truth}

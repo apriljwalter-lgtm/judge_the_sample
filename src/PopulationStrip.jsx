@@ -69,7 +69,7 @@ function PointTip({ active, payload, groupColumn }) {
 }
 
 export default function PopulationStrip({
-  population, target, sampledIds, groupColumn, truth, estimate, estimateLabel = "Sample mean", estimateColor = INK_2, height = 360,
+  population, target, sampledIds, groupColumn, truth, estimate, estimateLabel = "Sample mean", estimateColor = INK_2, hideEstimate = false, height = 360,
 }) {
   const jitter = useMemo(() => {
     const rng = makeRng(LAYOUT_SEED);
@@ -135,14 +135,16 @@ export default function PopulationStrip({
           ifOverflow="extendDomain"
           label={<MeanLabel text="True mean" side={truth <= estimate ? "left" : "right"} colour={INK} />}
         />
-        <ReferenceLine
-          x={estimate}
-          stroke={estimateColor}
-          strokeWidth={2}
-          strokeDasharray="6 4"
-          ifOverflow="extendDomain"
-          label={<MeanLabel text={estimateLabel} side={truth <= estimate ? "right" : "left"} colour={INK_2} />}
-        />
+        {!hideEstimate && (
+          <ReferenceLine
+            x={estimate}
+            stroke={estimateColor}
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            ifOverflow="extendDomain"
+            label={<MeanLabel text={estimateLabel} side={truth <= estimate ? "right" : "left"} colour={INK_2} />}
+          />
+        )}
       </ScatterChart>
     </ResponsiveContainer>
   );

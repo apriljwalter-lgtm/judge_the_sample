@@ -124,3 +124,6 @@ Stage 5
 the original data file is unchanged
 stratified uses 5 age groups on the modified copy, with the allocation adding up to n
 
+
+After everything was built according to the directions, Claude and I brainstormed stylization and added some creativity. 
+

@@ -1,15 +1,21 @@
+import { useId } from "react";
 import { count } from "./format.js";
+import Term from "./Term.jsx";
 
 // A whole-number box, optionally with a slider beside it. Both use the same value from
 // useWholeNumberInput, so typing and dragging always agree. `sliderMax` can be lower than the
-// box's own maximum (the box still accepts larger numbers).
-export default function NumberSlider({ label, input, help, unit, slider = true, sliderMax }) {
+// box's own maximum (the box still accepts larger numbers). `term` adds a glossary coin, kept
+// outside the <label> so clicking the label still focuses the box.
+export default function NumberSlider({ label, term, input, help, unit, slider = true, sliderMax }) {
   const max = sliderMax ?? input.max;
+  const id = `num-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const labelEl = <label htmlFor={id} className="field-label">{label}</label>;
   return (
     <div className="field number-slider">
-      <label>
-        <span className="field-label">{label}</span>{" "}
+      {term ? <Term id={term}>{labelEl}</Term> : labelEl}
+      <span>
         <input
+          id={id}
           type="text"
           inputMode="numeric"
           value={input.text}
@@ -17,7 +23,7 @@ export default function NumberSlider({ label, input, help, unit, slider = true, 
           aria-invalid={!input.isValid}
         />
         {unit}
-      </label>
+      </span>
       {slider && (
         <input
           type="range"

@@ -1,4 +1,5 @@
 import { count } from "./format.js";
+import Term from "./Term.jsx";
 
 const REPETITION_CHOICES = [100, 1000];
 
@@ -9,7 +10,7 @@ export default function ExperimentSettings({ seedInput, seed, maxSeed, reps, onR
       <h2 className="card-title">Experiment settings</h2>
       <div className="card-body controls">
         <fieldset className="radios">
-          <legend>Samples taken for each chart (repetitions)</legend>
+          <legend><Term id="reps">Samples taken for each chart (repetitions)</Term></legend>
           {REPETITION_CHOICES.map((r) => (
             <label key={r}>
               <input
@@ -24,16 +25,17 @@ export default function ExperimentSettings({ seedInput, seed, maxSeed, reps, onR
           ))}
         </fieldset>
         <div className="field" style={{ marginTop: 10 }}>
-          <label>
-            Seed{" "}
+          <Term id="seed"><label htmlFor="experiment-seed">Seed</label></Term>{" "}
+          <span>
             <input
+              id="experiment-seed"
               type="text"
               inputMode="numeric"
               value={seedInput.text}
               onChange={(e) => seedInput.onChange(e.target.value.trim())}
               aria-invalid={!seedInput.isValid}
             />
-          </label>{" "}
+          </span>{" "}
           {seedInput.isValid ? (
             <span>A starting number for the random picks. The same seed gives the same results.</span>
           ) : (

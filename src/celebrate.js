@@ -163,6 +163,7 @@ const FILES = {
   register: ["Cash register.mp3"],
   step: ["Coin drop.mp3"],
   paper: ["paper rustling.mp3"],
+  printer: ["printing sound.mp3"],
 };
 const clips = new Map(); // file name -> { buffer, offset }
 let preloadStarted = false;
@@ -199,12 +200,12 @@ export function preloadSounds() {
   }
 }
 
-function playClip(ac, group, { maxDur = 2, volume = 0.8 } = {}) {
+function playClip(ac, group, { maxDur = 2, volume = 0.8, exclusive = true } = {}) {
   const ready = FILES[group].filter((n) => clips.has(n));
   if (ready.length === 0) return false;
   const { buffer, offset } = clips.get(ready[Math.floor(Math.random() * ready.length)]);
   const t = ac.currentTime + 0.01;
-  if (current) {
+  if (exclusive && current) {
     current.gain.gain.cancelScheduledValues(t);
     current.gain.gain.setValueAtTime(current.gain.gain.value, t);
     current.gain.gain.linearRampToValueAtTime(0.0001, t + 0.08);
@@ -219,7 +220,7 @@ function playClip(ac, group, { maxDur = 2, volume = 0.8 } = {}) {
   gain.gain.linearRampToValueAtTime(0.0001, t + dur);
   src.connect(gain).connect(ac.destination);
   src.start(t, offset, dur);
-  current = { src, gain };
+  if (exclusive) current = { src, gain };
   src.onended = () => {
     if (current && current.src === src) current = null;
   };
@@ -258,6 +259,13 @@ function paper(ac, start, { dur, crackles, bed, peak, low = 900, high = 6000 }) 
   gain.gain.value = peak;
   src.connect(hp).connect(lp).connect(gain).connect(ac.destination);
   src.start(start);
+}
+
+// Built-in receipt-printer clatter (used only if the recording is missing): quick dot-matrix
+// ticks, then a short paper tear.
+function printerClatter(ac, t) {
+  for (let i = 0; i < 22; i++) paper(ac, t + i * 0.045, { dur: 0.03, crackles: 3, bed: 0.1, peak: 0.35, low: 1500, high: 6000 });
+  paper(ac, t + 1.05, { dur: 0.18, crackles: 12, bed: 0.6, peak: 0.4, low: 900, high: 5000 });
 }
 
 const PAPER = {
@@ -333,6 +341,11 @@ export function playSound(kind = "change") {
     if (kind.startsWith("paper-")) {
       const settings = PAPER[kind.slice(6)];
       if (settings) paper(ac, t, settings);
+      return;
+    }
+    if (kind === "printer") {
+      // receipt printing (plays alongside other sounds rather than cutting them off)
+      if (!playClip(ac, "printer", { maxDur: 2.2, volume: 0.75, exclusive: false })) printerClatter(ac, t);
       return;
     }
     if (kind === "cha-ching") {

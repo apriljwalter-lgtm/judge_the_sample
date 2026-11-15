@@ -1,19 +1,22 @@
 import RangeChart, { typeText, samplesText } from "./RangeChart.jsx";
 import { dollars, count } from "./format.js";
+import Term from "./Term.jsx";
 
 // One experiment: a range-bar chart (one row per result, same dollar axis) and a summary table.
 // `results`: [{ key, label, result, summary, range, note }] where `result` comes from
 // repeatedResult(), `summary` from summarizeEstimates() and `range` from middleRange() in sampling.js.
 // A result may carry its own `truth` and `population` label (Stage 5: baseline vs modified);
 // then its bias, SD and RMSE were computed against that row's own true mean.
-export default function ExperimentPanel({ title, intro, results, truth, N }) {
+export default function ExperimentPanel({ title, intro, results, truth, N, tourId }) {
   const perRow = results.some((x) => x.truth !== undefined);
   return (
-    <section className="card">
+    <section className="card" data-tour={tourId}>
       <h2 className="card-title">{title}</h2>
       <div className="card-body">
         {intro}
-        <RangeChart results={results} truth={truth} />
+        <div data-tour="range-chart">
+          <RangeChart results={results} truth={truth} />
+        </div>
         <p className="note">
           <strong>How to read this chart:</strong> each faint dot is the mean cost from one sample.
           The bold bar covers the middle 95% of those dots, and the large dot is their mean.{" "}
@@ -22,22 +25,22 @@ export default function ExperimentPanel({ title, intro, results, truth, N }) {
             : `The black line is the true mean of all ${count(N)} people.`}{" "}
           Hover over a dot to see its value.
         </p>
-        <div className="table-wrap">
+        <div className="table-wrap" data-tour="summary-table">
           <table className="shares summary">
             <thead>
               <tr>
                 <th scope="col">Method</th>
                 {perRow && <th scope="col">Population</th>}
-                <th scope="col">People per sample (n)</th>
-                <th scope="col">Type</th>
-                <th scope="col">Seed</th>
-                <th scope="col">Samples taken</th>
-                <th scope="col">True mean</th>
+                <th scope="col"><Term id="n">People per sample (n)</Term></th>
+                <th scope="col"><Term id="monteCarlo">Type</Term></th>
+                <th scope="col"><Term id="seed">Seed</Term></th>
+                <th scope="col"><Term id="reps">Samples taken</Term></th>
+                <th scope="col"><Term id="trueMean">True mean</Term></th>
                 <th scope="col">Mean of the sample means</th>
-                <th scope="col">Middle 95% of the sample means</th>
-                <th scope="col">Bias (mean miss)</th>
-                <th scope="col">SD (spread)</th>
-                <th scope="col">RMSE (typical error)</th>
+                <th scope="col"><Term id="middle95">Middle 95% of the sample means</Term></th>
+                <th scope="col"><Term id="bias">Bias (mean miss)</Term></th>
+                <th scope="col"><Term id="sd">SD (spread)</Term></th>
+                <th scope="col"><Term id="rmse">RMSE (typical error)</Term></th>
               </tr>
             </thead>
             <tbody>
